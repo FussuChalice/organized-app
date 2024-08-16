@@ -328,6 +328,7 @@ export const importDummyPersons = async (showLoading?: boolean) => {
     const cnMaleUnbaptized = 15;
     const cnElder = 9;
     const cnElderFR = 5;
+    const cnElderWTConductor = 3;
     const cnMinServ = 4;
     const cnMinServFR = 8;
     const cnMaleFR = 4;
@@ -338,6 +339,7 @@ export const importDummyPersons = async (showLoading?: boolean) => {
     let activeMaleUnbaptized = 0;
     let activeElder = 0;
     let activeElderFR = 0;
+    let activeElderWTConductor = 0;
     let activeMinServ = 0;
     let activeMinServFR = 0;
     let activeMaleFR = 0;
@@ -352,6 +354,7 @@ export const importDummyPersons = async (showLoading?: boolean) => {
           'baptized',
           'elder',
           'elderFR',
+          'elderWTConductor',
           'minServ',
           'minServFR',
           'FR',
@@ -389,6 +392,14 @@ export const importDummyPersons = async (showLoading?: boolean) => {
           if (maleStatus === 'elderFR' && activeElderFR < cnElderFR) {
             statusPassed = true;
             activeElderFR++;
+          }
+
+          if (
+            maleStatus === 'elderWTConductor' &&
+            activeElderWTConductor < cnElderWTConductor
+          ) {
+            statusPassed = true;
+            activeElderWTConductor++;
           }
 
           if (maleStatus === 'minServ' && activeMinServ < cnMinServ) {
@@ -494,6 +505,7 @@ export const importDummyPersons = async (showLoading?: boolean) => {
           maleStatus === 'baptized' ||
           maleStatus === 'elder' ||
           maleStatus === 'elderFR' ||
+          maleStatus === 'elderWTConductor' ||
           maleStatus === 'minServ' ||
           maleStatus === 'minServFR' ||
           maleStatus === 'FR' ||
@@ -566,6 +578,7 @@ export const importDummyPersons = async (showLoading?: boolean) => {
         if (
           maleStatus === 'elder' ||
           maleStatus === 'elderFR' ||
+          maleStatus === 'elderWTConductor' ||
           maleStatus === 'FS' ||
           maleStatus === 'FMF'
         ) {
@@ -693,16 +706,27 @@ export const importDummyPersons = async (showLoading?: boolean) => {
               _deleted: false,
             },
             {
-              code: AssignmentCode.WM_Speaker,
-              updatedAt: new Date().toISOString(),
-              _deleted: false,
-            },
-            {
               code: AssignmentCode.WM_WTStudyReader,
               updatedAt: new Date().toISOString(),
               _deleted: false,
             }
           );
+        }
+
+        if (maleStatus === 'minServ') {
+          person.person_data.assignments.push({
+            code: AssignmentCode.WM_SpeakerSymposium,
+            updatedAt: new Date().toISOString(),
+            _deleted: false,
+          });
+        }
+
+        if (maleStatus === 'minServFR') {
+          person.person_data.assignments.push({
+            code: AssignmentCode.WM_Speaker,
+            updatedAt: new Date().toISOString(),
+            _deleted: false,
+          });
         }
 
         if (
@@ -737,12 +761,18 @@ export const importDummyPersons = async (showLoading?: boolean) => {
             _deleted: { value: false, updatedAt: '' },
           });
         }
+
+        if (maleStatus === 'elderWTConductor') {
+          person.person_data.assignments.push({
+            code: AssignmentCode.WM_WTStudyConductor,
+            updatedAt: new Date().toISOString(),
+            _deleted: false,
+          });
+        }
       }
     }
 
-    for await (const person of formattedData) {
-      await appDb.persons.put(person);
-    }
+    await appDb.persons.bulkPut(formattedData);
 
     showProgress && (await promiseSetRecoil(rootModalOpenState, false));
   } catch (err) {
@@ -751,11 +781,28 @@ export const importDummyPersons = async (showLoading?: boolean) => {
   }
 };
 
-export const removeSecondsFromTime = (time: string) => {
-  const parts = time.split(':');
+export const dbSettingsAssignMainWTStudyConductor = async () => {
+  const settings = await appDb.app_settings.toArray();
 
-  if (parts.length > 2) {
-    return parts.slice(0, 2).join(':');
-  }
-  return time;
+  const persons = await appDb.persons.toArray();
+  const conductor = persons.find((record) =>
+    record.person_data.assignments.find(
+      (item) =>
+        item._deleted === false &&
+        item.code === AssignmentCode.WM_WTStudyConductor
+    )
+  );
+
+  const weekend_meeting = structuredClone(
+    settings.at(0).cong_settings.weekend_meeting
+  );
+  const setting = weekend_meeting.find((record) => record.type === 'main');
+  setting.w_study_conductor_default = {
+    value: conductor.person_uid,
+    updatedAt: new Date().toISOString(),
+  };
+
+  await appDb.app_settings.update(1, {
+    'cong_settings.weekend_meeting': weekend_meeting,
+  });
 };

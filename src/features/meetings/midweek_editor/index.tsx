@@ -140,7 +140,9 @@ const MidweekEditor = () => {
                 ]}
               />
             </Box>
-            <WeekTypeSelector week={selectedWeek} meeting="midweek" />
+            <Box sx={{ minWidth: laptopUp ? '350px' : '100%' }}>
+              <WeekTypeSelector week={selectedWeek} meeting="midweek" />
+            </Box>
           </Box>
 
           <Divider color="var(--accent-200)" />
@@ -207,8 +209,6 @@ const MidweekEditor = () => {
                       />
                     </PersonSelectorContainer>
                   </RowContainer>
-
-                  <Divider color="var(--accent-200)" />
 
                   <MeetingSection
                     part={t('tr_treasuresPart')}
@@ -965,7 +965,7 @@ const MidweekEditor = () => {
                       week={selectedWeek}
                       meeting="midweek"
                       type="concluding"
-                      isEdit={weekType === Week.CO_VISIT && isEdit}
+                      isEdit={isEdit || weekType === Week.CO_VISIT}
                     />
 
                     <PersonSelectorContainer desktopUp={desktopUp}>

@@ -125,6 +125,19 @@ export const COFullnameState = selector({
   },
 });
 
+export const COScheduleNameState = selector({
+  key: 'COScheduleName',
+  get: ({ get }) => {
+    const fullname = get(COFullnameState);
+    const displayName = get(CODisplayNameState);
+    const useDisplayName = get(displayNameEnableState);
+
+    const scheduleName = useDisplayName ? displayName : fullname;
+
+    return scheduleName;
+  },
+});
+
 export const adminRoleState = selector({
   key: 'adminRole',
   get: ({ get }) => {
@@ -351,6 +364,20 @@ export const weekendMeetingSubstituteSpeakerState = selector({
     return settings.cong_settings.weekend_meeting.find(
       (record) => record.type === dataView
     ).substitute_speaker_enabled;
+  },
+});
+
+export const weekendMeetingWTStudyConductorDefaultState = selector({
+  key: 'weekendMeetingWTStudyConductorDefault',
+  get: ({ get }) => {
+    const settings = get(settingsState);
+    const dataView = get(userDataViewState);
+
+    return (
+      settings.cong_settings.weekend_meeting.find(
+        (record) => record.type === dataView
+      )?.w_study_conductor_default.value || ''
+    );
   },
 });
 

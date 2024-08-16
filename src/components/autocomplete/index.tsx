@@ -1,5 +1,10 @@
 import { MouseEvent, forwardRef } from 'react';
-import { Autocomplete, Box, BoxProps, Paper } from '@mui/material';
+import {
+  Autocomplete as MUIAutocomplete,
+  Box,
+  BoxProps,
+  Paper,
+} from '@mui/material';
 import { AutocompletePropsType, CustomPaperType } from './index.types';
 import { useAppTranslation } from '@hooks/index';
 import Divider from '@components/divider';
@@ -67,7 +72,7 @@ export const CustomListBoxComponent = forwardRef((props: BoxProps, ref) => {
 
 CustomListBoxComponent.displayName = 'CustomListBoxComponent';
 
-const CustomAutoComplete = <T,>(props: AutocompletePropsType<T>) => {
+const Autocomplete = <T,>(props: AutocompletePropsType<T>) => {
   const { t } = useAppTranslation();
 
   const {
@@ -81,7 +86,7 @@ const CustomAutoComplete = <T,>(props: AutocompletePropsType<T>) => {
   } = props;
 
   return (
-    <Autocomplete
+    <MUIAutocomplete
       {...defaultProps}
       fullWidth={true}
       sx={{
@@ -94,6 +99,7 @@ const CustomAutoComplete = <T,>(props: AutocompletePropsType<T>) => {
         '.MuiAutocomplete-input': {
           padding: '0px !important',
         },
+        ...props.sx,
       }}
       PaperComponent={(paperProps) => (
         <CustomPaper {...paperProps} optionsHeader={optionsHeader} />
@@ -120,23 +126,24 @@ const CustomAutoComplete = <T,>(props: AutocompletePropsType<T>) => {
           height={48}
           styleIcon={styleIcon ?? true}
           sx={
-            decorator === 'error'
+            decorator
               ? {
                   '.MuiOutlinedInput-root': {
+                    borderRadius: 'var(--radius-l)',
                     '& fieldset': {
-                      border: '1px solid var(--red-main)',
+                      border: '1px solid var(--orange-dark)',
                     },
                     '&:hover fieldset': {
-                      border: '1px solid var(--red-main)',
+                      border: '1px solid var(--orange-dark)',
                     },
                     '&.Mui-focused fieldset': {
-                      border: '1px solid var(--red-main)',
+                      border: '1px solid var(--orange-dark)',
                     },
                   },
                   '.MuiInputLabel-root': {
-                    color: 'var(--red-main)',
+                    color: 'var(--orange-dark)',
                     '&.Mui-focused': {
-                      color: 'var(--red-main)',
+                      color: 'var(--orange-dark)',
                     },
                   },
                 }
@@ -148,4 +155,4 @@ const CustomAutoComplete = <T,>(props: AutocompletePropsType<T>) => {
   );
 };
 
-export default CustomAutoComplete;
+export default Autocomplete;

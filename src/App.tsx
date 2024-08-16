@@ -25,9 +25,15 @@ const ServiceYear = lazy(() => import('@pages/ministry/service_year'));
 const AuxiliaryPioneerApplication = lazy(
   () => import('@pages/ministry/auxiliary_pioneer')
 );
-const VisitingSpeakers = lazy(() => import('@pages/persons/visiting_speakers'));
+const SpeakersCatalog = lazy(() => import('@pages/persons/speakers_catalog'));
 const WeekendMeeting = lazy(() => import('@pages/meetings/weekend'));
 const ServiceGroups = lazy(() => import('@pages/congregation/service_groups'));
+const PublisherRecord = lazy(
+  () => import('@pages/congregation/publisher_records')
+);
+const PublisherRecordDetail = lazy(
+  () => import('@pages/congregation/publisher_records_detail')
+);
 const ManageAccessAll = lazy(
   () => import('@pages/manage_access/manage_access_all')
 );
@@ -78,10 +84,15 @@ const App = ({ updatePwa }: { updatePwa: VoidFunction }) => {
               path: '/auxiliary-pioneer-application',
               element: <AuxiliaryPioneerApplication />,
             },
-            { path: '/visiting-speakers', element: <VisitingSpeakers /> },
+            { path: '/speakers-catalog', element: <SpeakersCatalog /> },
             { path: '/midweek-meeting', element: <MidweekMeeting /> },
             { path: '/weekend-meeting', element: <WeekendMeeting /> },
             { path: '/service-groups', element: <ServiceGroups /> },
+            { path: '/publisher-records', element: <PublisherRecord /> },
+            {
+              path: '/publisher-records/:id',
+              element: <PublisherRecordDetail />,
+            },
             { path: '/manage-access', element: <ManageAccessAll /> },
             {
               path: '/manage-access/:id',

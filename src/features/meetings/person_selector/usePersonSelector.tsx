@@ -1,4 +1,4 @@
-import { MouseEvent, useCallback, useEffect, useState } from 'react';
+import { MouseEvent, useCallback, useEffect, useRef, useState } from 'react';
 import {
   GenderType,
   PersonOptionsType,
@@ -8,11 +8,13 @@ import { PersonType } from '@definition/person';
 import { useRecoilValue } from 'recoil';
 import { personsActiveState, personsState } from '@states/persons';
 import {
+  COScheduleNameState,
   displayNameEnableState,
   fullnameOptionState,
   userDataViewState,
+  weekendMeetingWTStudyConductorDefaultState,
 } from '@states/settings';
-import { personGetDisplayName } from '@utils/common';
+import { personGetDisplayName, speakerGetDisplayName } from '@utils/common';
 import { AssignmentCode } from '@definition/assignment';
 import { useAppTranslation } from '@hooks/index';
 import { assignmentsHistoryState, schedulesState } from '@states/schedules';
@@ -40,8 +42,27 @@ import {
   schedulesSaveAssignment,
 } from '@services/app/schedules';
 import { IconMale, IconPersonPlaceholder } from '@components/icons';
+import {
+  incomingSpeakersState,
+  outgoingSpeakersState,
+} from '@states/visiting_speakers';
+import { personSchema } from '@services/dexie/schema';
+import { speakersCongregationsActiveState } from '@states/speakers_congregations';
+import { publicTalksState } from '@states/public_talks';
 
-const usePersonSelector = ({ type, week, assignment }: PersonSelectorType) => {
+const usePersonSelector = ({
+  type,
+  week,
+  assignment,
+  visitingSpeaker,
+  talk,
+  circuitOverseer,
+  jwStreamRecording,
+  freeSoloForce,
+  schedule_id,
+}: PersonSelectorType) => {
+  const timerSource = useRef<NodeJS.Timeout>();
+
   const { t } = useAppTranslation();
 
   const personsAll = useRecoilValue(personsActiveState);
@@ -53,17 +74,30 @@ const usePersonSelector = ({ type, week, assignment }: PersonSelectorType) => {
   const persons = useRecoilValue(personsState);
   const lang = useRecoilValue(JWLangState);
   const history = useRecoilValue(assignmentsHistoryState);
+  const visitingSpeakers = useRecoilValue(incomingSpeakersState);
+  const outgoingSpeakers = useRecoilValue(outgoingSpeakersState);
+  const speakersCongregation = useRecoilValue(speakersCongregationsActiveState);
+  const talks = useRecoilValue(publicTalksState);
+  const coName = useRecoilValue(COScheduleNameState);
+  const WTStudyConductorDefault = useRecoilValue(
+    weekendMeetingWTStudyConductorDefaultState
+  );
 
   const [optionHeader, setOptionHeader] = useState('');
   const [options, setOptions] = useState<PersonOptionsType[]>([]);
-  const [value, setValue] = useState<PersonOptionsType | null>(null);
+  const [value, setValue] = useState<PersonOptionsType | null | string>(null);
   const [gender, setGender] = useState<GenderType>('male');
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-  const [decorator, setDecorator] = useState<'error' | 'warning'>(null);
+  const [decorator, setDecorator] = useState(false);
   const [helperText, setHelperText] = useState('');
+  const [freeSoloText, setFreeSoloText] = useState('');
 
   const labelBrothers = t('tr_brothers');
   const labelParticipants = t('tr_participants');
+  const labelVisitingSpeakers = t('tr_visitingSpeakers');
+
+  const freeSolo =
+    visitingSpeaker || circuitOverseer || jwStreamRecording || freeSoloForce;
 
   const placeHolderIcon = STUDENT_ASSIGNMENT.includes(type) ? (
     <IconPersonPlaceholder />
@@ -77,7 +111,9 @@ const usePersonSelector = ({ type, week, assignment }: PersonSelectorType) => {
   const source = sources.find((record) => record.weekOf === week);
 
   const assignmentsHistory = history.filter(
-    (record) => record.assignment.person === value?.person_uid
+    (record) =>
+      typeof value !== 'string' &&
+      record.assignment.person === value?.person_uid
   );
 
   const checkGenderSelector = () => {
@@ -108,6 +144,10 @@ const usePersonSelector = ({ type, week, assignment }: PersonSelectorType) => {
 
   const getPersonDisplayName = useCallback(
     (option: PersonOptionsType) => {
+      if (freeSolo && typeof option === 'string') {
+        return option as unknown as string;
+      }
+
       const result = personGetDisplayName(
         option,
         displayNameEnabled,
@@ -115,7 +155,7 @@ const usePersonSelector = ({ type, week, assignment }: PersonSelectorType) => {
       );
       return result;
     },
-    [displayNameEnabled, fullnameOption]
+    [displayNameEnabled, fullnameOption, freeSolo]
   );
 
   const handleGenderUpdate = (
@@ -127,7 +167,41 @@ const usePersonSelector = ({ type, week, assignment }: PersonSelectorType) => {
   };
 
   const handleSaveAssignment = async (value: PersonOptionsType) => {
-    await schedulesSaveAssignment(schedule, assignment, value);
+    if (typeof value === 'object') {
+      await schedulesSaveAssignment(schedule, assignment, value, schedule_id);
+    }
+  };
+
+  const handleFreeSoloTextChange = (text: string) => {
+    setFreeSoloText(text);
+
+    if (timerSource.current) clearTimeout(timerSource.current);
+
+    timerSource.current = setTimeout(() => handleSaveSpeaker(text), 1000);
+  };
+
+  const handleSaveSpeaker = async (speaker: string) => {
+    if (freeSolo) {
+      if (speaker.length === 0) {
+        await schedulesSaveAssignment(schedule, assignment, null);
+      }
+
+      if (speaker.length > 0) {
+        // find if text is in options
+        const found = options.find(
+          (record) =>
+            getPersonDisplayName(record).toLowerCase() === speaker.toLowerCase()
+        );
+
+        if (found) {
+          await schedulesSaveAssignment(schedule, assignment, found);
+        }
+
+        if (!found) {
+          schedulesSaveAssignment(schedule, assignment, speaker);
+        }
+      }
+    }
   };
 
   const handleFormatDate = useCallback(
@@ -217,52 +291,125 @@ const usePersonSelector = ({ type, week, assignment }: PersonSelectorType) => {
 
   const handleCloseHistory = () => setIsHistoryOpen(false);
 
+  // input reset
   useEffect(() => {
-    if (BROTHER_ASSIGNMENT.includes(type)) {
+    if (circuitOverseer || jwStreamRecording) {
+      setOptions([]);
+      setFreeSoloText('');
+    }
+  }, [circuitOverseer, jwStreamRecording]);
+
+  // set selector label
+  useEffect(() => {
+    if (
+      BROTHER_ASSIGNMENT.includes(type) ||
+      assignment === 'WM_Speaker_Outgoing'
+    ) {
       setOptionHeader(labelBrothers);
     } else {
       setOptionHeader(labelParticipants);
     }
-  }, [type, labelBrothers, labelParticipants]);
+  }, [
+    type,
+    labelBrothers,
+    labelParticipants,
+    labelVisitingSpeakers,
+    assignment,
+  ]);
 
+  // options setter for visiting speakers
   useEffect(() => {
-    if (!isAssistant) {
+    if (visitingSpeaker) {
+      setOptions([]);
+
+      const options: PersonOptionsType[] = [];
+
+      for (const person of visitingSpeakers) {
+        if (talk) {
+          const activeTalks = person.speaker_data.talks.filter(
+            (record) => record._deleted === false && record.talk_number === talk
+          );
+
+          if (activeTalks.length === 0) {
+            continue;
+          }
+        }
+
+        const obj: PersonOptionsType = structuredClone(personSchema);
+
+        obj.person_uid = person.person_uid;
+        obj.person_data.person_lastname.value =
+          person.speaker_data.person_lastname.value;
+        obj.person_data.person_firstname.value =
+          person.speaker_data.person_firstname.value;
+        obj.person_data.male.value = true;
+
+        options.push(obj);
+      }
+
+      setOptions(
+        options.sort((a, b) =>
+          getPersonDisplayName(a).localeCompare(getPersonDisplayName(b))
+        )
+      );
+    }
+  }, [
+    visitingSpeaker,
+    visitingSpeakers,
+    speakersCongregation,
+    talks,
+    talk,
+    getPersonDisplayName,
+  ]);
+
+  // options setter for outgoing speakers
+  useEffect(() => {
+    if (assignment === 'WM_Speaker_Outgoing') {
+      const options: PersonOptionsType[] = [];
+
+      for (const speaker of outgoingSpeakers) {
+        if (talk) {
+          const activeTalks = speaker.speaker_data.talks.filter(
+            (record) => record._deleted === false && record.talk_number === talk
+          );
+
+          if (activeTalks.length === 0) {
+            continue;
+          }
+        }
+
+        const person = personsAll.find(
+          (record) => record.person_uid === speaker.person_uid
+        );
+
+        options.push(person);
+      }
+
+      setOptions(
+        options.sort((a, b) =>
+          getPersonDisplayName(a).localeCompare(getPersonDisplayName(b))
+        )
+      );
+    }
+  }, [assignment, getPersonDisplayName, outgoingSpeakers, talk, personsAll]);
+
+  // options setter for others
+  useEffect(() => {
+    if (
+      !isAssistant &&
+      !visitingSpeaker &&
+      !jwStreamRecording &&
+      assignment !== 'WM_Speaker_Outgoing'
+    ) {
+      setOptions([]);
+
       const isMale = gender === 'male';
       const isFemale = gender === 'female';
 
-      const getLCSources = (part: LivingAsChristiansType) => {
-        const srcOverride = part.title.override.find(
-          (record) => record.type === dataView
-        );
-        const srcDefault = part.title.default[lang];
-        const src =
-          srcOverride?.value.length > 0 ? srcOverride.value : srcDefault;
-
-        const descOverride = part.desc.override.find(
-          (record) => record.type === dataView
-        );
-        const descDefault = part.desc.default[lang];
-        const desc =
-          descOverride?.value.length > 0 ? descOverride.value : descDefault;
-
-        return { src, desc };
-      };
-
-      const getPersons = (isElder: boolean) => {
-        let persons = personsAll.filter((record) =>
-          record.person_data.assignments
-            .filter((assignment) => assignment._deleted === false)
-            .find((item) => item.code === type)
-        );
-
-        if (isElder) {
-          persons = persons.filter((record) => personIsElder(record));
-        }
-
-        return persons;
-      };
-
-      if (type !== AssignmentCode.MM_LCPart) {
+      if (
+        type !== AssignmentCode.MM_LCPart &&
+        type !== AssignmentCode.WM_SpeakerSymposium
+      ) {
         const persons = personsAll.filter(
           (record) =>
             record.person_data.male.value === isMale &&
@@ -277,10 +424,58 @@ const usePersonSelector = ({ type, week, assignment }: PersonSelectorType) => {
         setOptions(options);
       }
 
+      if (type === AssignmentCode.WM_SpeakerSymposium) {
+        const persons = personsAll.filter((record) =>
+          record.person_data.assignments
+            .filter((assignment) => assignment._deleted === false)
+            .find(
+              (item) =>
+                item.code === AssignmentCode.WM_Speaker ||
+                item.code === AssignmentCode.WM_SpeakerSymposium
+            )
+        );
+
+        const options = handleSortOptions(persons);
+
+        setOptions(options);
+      }
+
       if (type === AssignmentCode.MM_LCPart) {
+        const getLCSources = (part: LivingAsChristiansType) => {
+          const srcOverride = part.title.override.find(
+            (record) => record.type === dataView
+          );
+          const srcDefault = part.title.default[lang];
+          const src =
+            srcOverride?.value.length > 0 ? srcOverride.value : srcDefault;
+
+          const descOverride = part.desc.override.find(
+            (record) => record.type === dataView
+          );
+          const descDefault = part.desc.default[lang];
+          const desc =
+            descOverride?.value.length > 0 ? descOverride.value : descDefault;
+
+          return { src, desc };
+        };
+
         const source = sources.find((record) => record.weekOf === week);
         if (source) {
           const lcParts = ['MM_LCPart1', 'MM_LCPart2'];
+
+          const getPersons = (isElder: boolean) => {
+            let persons = personsAll.filter((record) =>
+              record.person_data.assignments
+                .filter((assignment) => assignment._deleted === false)
+                .find((item) => item.code === type)
+            );
+
+            if (isElder) {
+              persons = persons.filter((record) => personIsElder(record));
+            }
+
+            return persons;
+          };
 
           if (lcParts.includes(assignment)) {
             const path = assignment
@@ -327,10 +522,31 @@ const usePersonSelector = ({ type, week, assignment }: PersonSelectorType) => {
     history,
     handleFormatDate,
     handleSortOptions,
+    visitingSpeaker,
+    jwStreamRecording,
   ]);
 
+  // set selected option for outgoing speaker
   useEffect(() => {
-    if (week.length > 0) {
+    if (week.length > 0 && assignment === 'WM_Speaker_Outgoing') {
+      setValue(null);
+
+      const outgoingSchedule = schedule.weekend_meeting.outgoing_talks.find(
+        (record) => record.id === schedule_id
+      );
+
+      if (outgoingSchedule?.speaker.length > 0) {
+        const person = personsAll.find(
+          (record) => record.person_uid === outgoingSchedule.speaker
+        );
+        setValue(person);
+      }
+    }
+  }, [week, schedule, schedule_id, personsAll, assignment]);
+
+  // set selected option for others
+  useEffect(() => {
+    if (week.length > 0 && assignment !== 'WM_Speaker_Outgoing') {
       const path = ASSIGNMENT_PATH[assignment];
 
       if (path) {
@@ -383,29 +599,39 @@ const usePersonSelector = ({ type, week, assignment }: PersonSelectorType) => {
 
         if (!isAssistant || (isAssistant && mainStudent)) {
           const dataSchedule = schedulesGetData(schedule, path);
-          let person_uid: string;
+          let assigned: AssignmentCongregation;
 
           if (Array.isArray(dataSchedule)) {
-            person_uid = dataSchedule.find(
-              (record) => record.type === dataView
-            )?.value;
+            assigned = dataSchedule.find((record) => record.type === dataView);
           } else {
-            person_uid = dataSchedule.value;
+            assigned = dataSchedule;
           }
 
-          const person = persons.find(
-            (record) => record.person_uid === person_uid
-          );
+          if (!assigned?.solo) {
+            const person = options.find(
+              (record) => record.person_uid === assigned?.value
+            );
 
-          if (person && person.person_data.female.value) {
-            setGender('female');
+            if (person && person.person_data.female.value) {
+              setGender('female');
+            }
+
+            if (person && person.person_data.male.value) {
+              setGender('male');
+            }
+
+            setValue(person || null);
           }
 
-          if (person && person.person_data.male.value) {
+          if (assigned?.solo) {
             setGender('male');
-          }
+            setValue(assigned.value);
+            setFreeSoloText(assigned.value);
 
-          setValue(person || null);
+            if (circuitOverseer && assigned?.value.length === 0) {
+              setValue(coName);
+            }
+          }
         }
       }
     }
@@ -420,11 +646,125 @@ const usePersonSelector = ({ type, week, assignment }: PersonSelectorType) => {
     handleFormatDate,
     history,
     handleSortOptions,
+    options,
+    freeSolo,
+    circuitOverseer,
+    coName,
   ]);
 
+  // get pre-selected value for assignments
+  useEffect(() => {
+    if (week.length > 0) {
+      // get speaker
+      let assigned: AssignmentCongregation;
+
+      if (assignment === 'WM_ClosingPrayer') {
+        if (!jwStreamRecording) {
+          const closingPrayerPath = ASSIGNMENT_PATH[assignment];
+          const scheduleData = schedulesGetData(
+            schedule,
+            closingPrayerPath
+          ) as AssignmentCongregation[];
+          const closingPrayer =
+            scheduleData.find((record) => record.type === dataView)?.value ||
+            '';
+
+          if (closingPrayer.length === 0) {
+            const speakerPath = ASSIGNMENT_PATH['WM_Speaker_Part1'];
+            const scheduleData = schedulesGetData(
+              schedule,
+              speakerPath
+            ) as AssignmentCongregation[];
+
+            assigned = scheduleData.find((record) => record.type === dataView);
+          }
+        }
+      }
+
+      if (assignment === 'WM_WTStudy_Conductor') {
+        const conductorPath = ASSIGNMENT_PATH[assignment];
+        const scheduleData = schedulesGetData(
+          schedule,
+          conductorPath
+        ) as AssignmentCongregation[];
+
+        const conductor = scheduleData.find(
+          (record) => record.type === dataView
+        )?.value;
+
+        if (conductor?.length === 0) {
+          const person = personsAll.find(
+            (record) => record.person_uid === WTStudyConductorDefault
+          );
+          setGender('male');
+          setValue(person || null);
+        }
+      }
+
+      if (assigned) {
+        if (!assigned.solo) {
+          if (!freeSoloForce) {
+            const person = options.find(
+              (record) => record.person_uid === assigned?.value
+            );
+
+            if (person && person.person_data.female.value) {
+              setGender('female');
+            }
+
+            if (person && person.person_data.male.value) {
+              setGender('male');
+            }
+
+            setValue(person || null);
+            setFreeSoloText('');
+          }
+
+          if (freeSoloForce) {
+            setFreeSoloText('');
+
+            const person = visitingSpeakers.find(
+              (record) => record.person_uid === assigned.value
+            );
+
+            if (person) {
+              setFreeSoloText(
+                speakerGetDisplayName(
+                  person,
+                  displayNameEnabled,
+                  fullnameOption
+                )
+              );
+            }
+          }
+        }
+
+        if (assigned.solo) {
+          setGender('male');
+          setValue(assigned.value);
+          setFreeSoloText(assigned.value);
+        }
+      }
+    }
+  }, [
+    week,
+    assignment,
+    schedule,
+    dataView,
+    options,
+    WTStudyConductorDefault,
+    personsAll,
+    jwStreamRecording,
+    freeSoloForce,
+    visitingSpeakers,
+    displayNameEnabled,
+    fullnameOption,
+  ]);
+
+  // checking overlapping assignments
   useEffect(() => {
     const checkAssignments = () => {
-      setDecorator(null);
+      setDecorator(false);
       setHelperText('');
 
       if (value && week.length > 0) {
@@ -434,7 +774,7 @@ const usePersonSelector = ({ type, week, assignment }: PersonSelectorType) => {
         );
 
         if (weekAssignments.length > 1) {
-          setDecorator('error');
+          setDecorator(true);
           setHelperText(t('tr_personAlreadyAssignmentWeek'));
 
           return;
@@ -448,7 +788,7 @@ const usePersonSelector = ({ type, week, assignment }: PersonSelectorType) => {
         });
 
         if (monthAssignments.length > 1) {
-          setDecorator('error');
+          setDecorator(true);
           setHelperText(t('tr_repeatedMonthlyWarningDesc'));
 
           return;
@@ -477,6 +817,11 @@ const usePersonSelector = ({ type, week, assignment }: PersonSelectorType) => {
     placeHolderIcon,
     decorator,
     helperText,
+    visitingSpeaker,
+    freeSolo,
+    freeSoloText,
+    handleFreeSoloTextChange,
+    schedule_id,
   };
 };
 

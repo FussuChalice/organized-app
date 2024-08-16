@@ -7,14 +7,25 @@ import { JWLangState } from '@states/app';
 import { useAppTranslation } from '@hooks/index';
 import { userDataViewState } from '@states/settings';
 import { SongType } from '@definition/songs';
+import { sourcesSongConclude } from '@services/app/sources';
+import { dbSourcesUpdate } from '@services/dexie/sources';
+import { CongregationStringType } from '@definition/sources';
+import { schedulesState } from '@states/schedules';
+import { dbSchedUpdate } from '@services/dexie/schedules';
 
-const useSongSource = ({ meeting, type, week }: SongSourceType) => {
+const useSongSource = ({
+  meeting,
+  type,
+  week,
+  schedule_id,
+}: SongSourceType) => {
   const { t } = useAppTranslation();
 
   const sources = useRecoilValue(sourcesState);
   const songs = useRecoilValue(songsState);
   const lang = useRecoilValue(JWLangState);
   const dataView = useRecoilValue(userDataViewState);
+  const schedules = useRecoilValue(schedulesState);
 
   const [songTitle, setSongTitle] = useState('');
   const [selectedSong, setSelectedSong] = useState<SongType>(null);
@@ -22,48 +33,151 @@ const useSongSource = ({ meeting, type, week }: SongSourceType) => {
   const songLocale = t('tr_song');
 
   const source = sources.find((record) => record.weekOf === week);
+  const schedule = schedules.find((record) => record.weekOf === week);
 
-  const handleSongChange = async (value: SongType) => {
-    console.log(value);
-  };
+  const handleSongChange = async (song: SongType) => {
+    const value = song?.song_number.toString() || '';
 
-  useEffect(() => {
-    if (source && meeting === 'midweek') {
-      if (type === 'opening') {
-        const song = source.midweek_meeting.song_first[lang];
-        const title = songs.find((record) => record.song_number === +song);
+    const findOrCreateRecord = (song: CongregationStringType[]) => {
+      let data = song.find((record) => record.type === dataView);
 
-        const result = title ? `${songLocale} ${title.song_title}` : song;
-
-        setSongTitle(result as string);
+      if (!data) {
+        song.push({ type: dataView, updatedAt: '', value: '' });
+        data = song.find((record) => record.type === dataView);
       }
 
-      if (type === 'middle') {
-        const song = source.midweek_meeting.song_middle[lang];
-        const title = songs.find((record) => record.song_number === +song);
+      return data;
+    };
 
-        const result = title ? `${songLocale} ${title.song_title}` : song;
+    if (meeting === 'midweek') {
+      if (type === 'concluding') {
+        const song = structuredClone(
+          source.midweek_meeting.song_conclude.override
+        );
 
-        setSongTitle(result as string);
+        const data = findOrCreateRecord(song);
+        data.updatedAt = new Date().toISOString();
+        data.value = value;
+
+        await dbSourcesUpdate(week, {
+          'midweek_meeting.song_conclude.override': song,
+        });
+      }
+    }
+
+    if (meeting === 'weekend') {
+      if (type === 'opening') {
+        const song = structuredClone(source.weekend_meeting.song_first);
+
+        const data = findOrCreateRecord(song);
+        data.updatedAt = new Date().toISOString();
+        data.value = value;
+
+        await dbSourcesUpdate(week, { 'weekend_meeting.song_first': song });
       }
 
       if (type === 'concluding') {
-        const songOverride =
-          source.midweek_meeting.song_conclude.override.find(
-            (record) => record.type === dataView
-          )?.value || '';
-        const songDefault = source.midweek_meeting.song_conclude.default[lang];
-        const song = songOverride.length > 0 ? songOverride : songDefault;
+        const song = structuredClone(
+          source.weekend_meeting.song_conclude.override
+        );
 
-        const title = songs.find((record) => record.song_number === +song);
+        const data = findOrCreateRecord(song);
+        data.updatedAt = new Date().toISOString();
+        data.value = value;
 
-        const result = title ? `${songLocale} ${title.song_title}` : song;
+        await dbSourcesUpdate(week, {
+          'weekend_meeting.song_conclude.override': song,
+        });
+      }
 
-        setSongTitle(result as string);
-        setSelectedSong(title ? title : null);
+      if (type === 'outgoing') {
+        const outgoingTalks = structuredClone(
+          schedule.weekend_meeting.outgoing_talks
+        );
+
+        const outgoingSchedule = outgoingTalks.find(
+          (record) => record.id === schedule_id
+        );
+
+        outgoingSchedule.updatedAt = new Date().toISOString();
+        outgoingSchedule.opening_song = value;
+
+        await dbSchedUpdate(week, {
+          'weekend_meeting.outgoing_talks': outgoingTalks,
+        });
       }
     }
-  }, [meeting, songs, source, lang, type, songLocale, dataView]);
+  };
+
+  useEffect(() => {
+    if (source) {
+      let song: string;
+
+      if (meeting === 'midweek') {
+        if (type === 'opening') {
+          song = source.midweek_meeting.song_first[lang];
+        }
+
+        if (type === 'middle') {
+          song = source.midweek_meeting.song_middle[lang];
+        }
+
+        if (type === 'concluding') {
+          song = sourcesSongConclude({
+            meeting: 'midweek',
+            source,
+            dataView,
+            lang,
+          });
+        }
+      }
+
+      if (meeting === 'weekend') {
+        if (type === 'opening') {
+          song =
+            source.weekend_meeting.song_first.find(
+              (record) => record.type === dataView
+            )?.value || '';
+        }
+
+        if (type === 'middle') {
+          song = source.weekend_meeting.song_middle[lang];
+        }
+
+        if (type === 'concluding') {
+          song = sourcesSongConclude({
+            meeting: 'weekend',
+            source,
+            dataView,
+            lang,
+          });
+        }
+
+        if (type === 'outgoing') {
+          const outgoingSchedule = schedule.weekend_meeting.outgoing_talks.find(
+            (record) => record.id === schedule_id
+          );
+          song = outgoingSchedule.opening_song;
+        }
+      }
+
+      const title = songs.find((record) => record.song_number === +song);
+      const result = title ? `${songLocale} ${title.song_title}` : song;
+
+      setSongTitle(result as string);
+      setSelectedSong(title ? title : null);
+    }
+  }, [
+    meeting,
+    songs,
+    source,
+    lang,
+    type,
+    songLocale,
+    dataView,
+    schedule,
+    schedule_id,
+  ]);
 
   return { songTitle, songs, selectedSong, handleSongChange };
 };

@@ -20,7 +20,7 @@
   --apply-yourself-to-the-field-ministry: #c28200ff;
   --living-as-christians: #b82b10ff;
   --weekend-meeting: #498457ff;
-  --watchtower-study: #848383ff;
+  --watchtower-study: #457bbbff;
   --ministry: #7b57b5ff;
   --text-apply-yourself-to-the-field-ministry: #956711ff;
   --text-treasures-from-gods-word: #2a6b77ff;
@@ -648,7 +648,7 @@
   .h2-caps {
     font-size: 18px;
     text-decoration: none;
-    font-weight: 550;
+    font-weight: 450;
     font-style: normal;
     font-stretch: normal;
     letter-spacing: 0.18px;
@@ -759,7 +759,7 @@
   .h2-caps {
     font-size: 20px;
     text-decoration: none;
-    font-weight: 550;
+    font-weight: 450;
     font-style: normal;
     font-stretch: normal;
     letter-spacing: 0.2px;

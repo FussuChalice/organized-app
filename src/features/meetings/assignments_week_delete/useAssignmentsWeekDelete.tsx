@@ -7,6 +7,8 @@ import { assignmentsHistoryState, schedulesState } from '@states/schedules';
 import { SchedWeekType } from '@definition/schedules';
 import {
   scheduleDeleteMidweekWeekAssignments,
+  scheduleDeleteWeekendAssignments,
+  scheduleDeleteWeekendOutgoingTalk,
   schedulesBuildHistoryList,
 } from '@services/app/schedules';
 import { AssignmentsWeekDeleteType } from './index.types';
@@ -14,7 +16,8 @@ import { AssignmentsWeekDeleteType } from './index.types';
 const useAssignmentsWeekDelete = (
   week: AssignmentsWeekDeleteType['week'],
   meeting: AssignmentsWeekDeleteType['meeting'],
-  onClose: AssignmentsWeekDeleteType['onClose']
+  onClose: AssignmentsWeekDeleteType['onClose'],
+  schedule_id: AssignmentsWeekDeleteType['schedule_id']
 ) => {
   const { t } = useAppTranslation();
 
@@ -24,8 +27,18 @@ const useAssignmentsWeekDelete = (
 
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const handleDeleteMidweek = async (schedule: SchedWeekType) => {
-    await scheduleDeleteMidweekWeekAssignments(schedule);
+  const handleDeleteAssignments = async (schedule: SchedWeekType) => {
+    if (meeting === 'midweek') {
+      await scheduleDeleteMidweekWeekAssignments(schedule);
+    }
+
+    if (meeting === 'weekend' && !schedule_id) {
+      await scheduleDeleteWeekendAssignments(schedule);
+    }
+
+    if (meeting === 'weekend' && schedule_id) {
+      await scheduleDeleteWeekendOutgoingTalk(schedule, schedule_id);
+    }
 
     // load assignment history
     const history = await schedulesBuildHistoryList();
@@ -38,9 +51,7 @@ const useAssignmentsWeekDelete = (
 
       const schedule = schedules.find((record) => record.weekOf === week);
 
-      if (meeting === 'midweek') {
-        await handleDeleteMidweek(schedule);
-      }
+      await handleDeleteAssignments(schedule);
 
       setIsProcessing(false);
       onClose?.();

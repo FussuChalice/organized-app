@@ -12,13 +12,15 @@ const AssignmentsWeekDelete = ({
   onClose,
   meeting,
   week,
+  schedule_id,
 }: AssignmentsWeekDeleteType) => {
   const { t } = useAppTranslation();
 
   const { isProcessing, handleClearAssignments } = useAssignmentsDelete(
     week,
     meeting,
-    onClose
+    onClose,
+    schedule_id
   );
 
   return (
@@ -26,7 +28,9 @@ const AssignmentsWeekDelete = ({
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
         <Typography className="h2">{t('tr_clearAllAssignments')}</Typography>
         <Typography color="var(--grey-400)">
-          {t('tr_clearAllAssignmentsDesc')}
+          {schedule_id
+            ? t('tr_clearOutgoingTalkDesc')
+            : t('tr_clearAllAssignmentsDesc')}
         </Typography>
       </Box>
 
