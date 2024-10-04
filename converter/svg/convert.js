@@ -4,7 +4,7 @@ import fs from 'fs/promises';
 import path from 'path';
 
 const ROOT_FOLDER = './converter/svg/sources';
-const OUTPUT_FOLDER = './src/v3/components/icons';
+const OUTPUT_FOLDER = './src/components/icons';
 
 const currentFiles = await fs.readdir(OUTPUT_FOLDER);
 for await (const file of currentFiles) {
@@ -46,16 +46,29 @@ for await (const svgFile of svgFiles) {
     width?: number;
     height?: number;
     sx?: SxProps<Theme>;
+    className?: string
   };
 
   const ${componentName} = ({ ${
     !specialIcons.includes(componentName) ? `color = '#222222', ` : ''
-  }width = 24, height = 24, sx = {} }: IconProps) => {
+  }width = 24, height = 24, sx = {}, className }: IconProps) => {
     return (
-      <SvgIcon id="organized-icon-${originalName}" sx={{ width: widthPx, height: heightPx, ...sx }}>`;
+      <SvgIcon className={} sx={{ width: widthPx, height: heightPx, animation, ...sx }}>`;
 
   data = data.replace('widthPx', '`${width}px`');
   data = data.replace('heightPx', '`${height}px`');
+  data = data.replace(
+    'className={}',
+    'className={`organized-icon-${iconName} ${className}`}'
+  );
+
+  if (componentName === 'IconLoading') {
+    data.replace(' animation,', ' animation: rotate 2s linear infinite,');
+  } else {
+    data.replace(' animation,', '');
+  }
+
+  data = data.replace('${iconName}', originalName);
 
   const filePath = path.join(ROOT_FOLDER, svgFile);
   let svgContent = await fs.readFile(filePath, 'utf-8');
@@ -91,21 +104,6 @@ for await (const svgFile of svgFiles) {
   svgContent = svgContent.replaceAll('stroke-width', 'strokeWidth');
   svgContent = svgContent.replaceAll('stroke-dasharray', 'strokeDasharray');
 
-  if (componentName === 'IconLoading') {
-    svgContent = svgContent.replace(
-      '</g>',
-      `<animateTransform
-          attributeName="transform"
-          type="rotate"
-          from="0 12 12"
-          to="360 12 12"
-          dur="2s"
-          repeatCount="indefinite"
-        />
-      </g>`
-    );
-  }
-
   data += svgContent;
 
   data += `
@@ -114,14 +112,11 @@ for await (const svgFile of svgFiles) {
 
   export default ${componentName};`;
 
-  const jsxFile = path.join(
-    './src/v3/components/icons',
-    `${componentName}.tsx`
-  );
+  const jsxFile = path.join('./src/components/icons', `${componentName}.tsx`);
   fs.writeFile(jsxFile, data);
 
   strImport += `export { default as ${componentName}} from './${componentName}';`;
 }
 
-const jsFile = path.join('./src/v3/components/icons', `index.ts`);
+const jsFile = path.join('./src/components/icons', `index.ts`);
 fs.writeFile(jsFile, strImport);

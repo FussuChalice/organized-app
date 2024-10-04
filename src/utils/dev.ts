@@ -2,7 +2,41 @@ import { promiseSetRecoil } from 'recoil-outside';
 import { rootModalOpenState } from '@states/app';
 import { PersonType } from '@definition/person';
 import { AssignmentCode } from '@definition/assignment';
+import {
+  FieldServiceGroupMemberType,
+  FieldServiceGroupType,
+} from '@definition/field_service_groups';
+import {
+  generateDisplayName,
+  getRandomArrayItem,
+  getRandomNumber,
+} from './common';
+import {
+  personIsBaptizedPublisher,
+  personIsElder,
+  personIsEnrollmentActive,
+  personIsMS,
+  personIsPublisher,
+} from '@services/app/persons';
+import PERSON_MOCK from '@constants/person_mock';
 import appDb from '@db/appDb';
+import { CongFieldServiceReportType } from '@definition/cong_field_service_reports';
+import {
+  createArrayFromMonths,
+  currentReportMonth,
+  weeksInMonth,
+} from './date';
+import {
+  SchemaBranchFieldServiceReport,
+  congFieldServiceReportSchema,
+  meetingAttendanceSchema,
+} from '@services/dexie/schema';
+import {
+  MeetingAttendanceType,
+  WeeklyAttendance,
+} from '@definition/meeting_attendance';
+import { BranchFieldServiceReportType } from '@definition/branch_field_service_reports';
+import { formatDate } from '@services/dateformat';
 
 const getRandomDate = (
   start_date = new Date(1970, 0, 1),
@@ -13,29 +47,26 @@ const getRandomDate = (
   const timestamp = Math.floor(
     Math.random() * (maxValue - minValue + 1) + minValue
   );
-  return new Date(timestamp).toISOString();
+
+  return formatDate(new Date(timestamp), 'yyyy/MM/dd');
 };
 
 export const importDummyPersons = async (showLoading?: boolean) => {
   const showProgress = showLoading ?? true;
 
   try {
-    showProgress && (await promiseSetRecoil(rootModalOpenState, true));
+    if (showProgress) {
+      await promiseSetRecoil(rootModalOpenState, true);
+    }
 
     await appDb.persons.clear();
 
-    const url = 'https://dummyjson.com/users?limit=100';
+    const startDateTemp = formatDate(
+      new Date(new Date().getUTCFullYear() - 1, 8, 1),
+      'yyyy/MM/dd'
+    );
 
-    const res = await fetch(url);
-    const data = await res.json();
-
-    const startDateTemp = new Date(
-      new Date().getUTCFullYear(),
-      new Date().getMonth() - 1,
-      1
-    ).toISOString();
-
-    const formattedData: PersonType[] = data.users.map((user) => {
+    const formattedData: PersonType[] = PERSON_MOCK.map((user) => {
       const obj = {
         _deleted: { value: false, updatedAt: '' },
         person_uid: crypto.randomUUID(),
@@ -58,18 +89,20 @@ export const importDummyPersons = async (showLoading?: boolean) => {
             value: user.lastName,
             updatedAt: new Date().toISOString(),
           },
-          person_display_name: { value: '', updatedAt: '' },
+          person_display_name: {
+            value: generateDisplayName(user.lastName, user.firstName),
+            updatedAt: new Date().toISOString(),
+          },
           birth_date: {
             value: new Date(user.birthDate).toISOString(),
             updatedAt: new Date().toISOString(),
           },
           address: {
-            value: `${user.address.address} ${user.address.city}`,
+            value: user.address,
             updatedAt: new Date().toISOString(),
           },
           email: { value: user.email, updatedAt: new Date().toISOString() },
           phone: { value: user.phone, updatedAt: new Date().toISOString() },
-          first_month_report: { value: null, updatedAt: '' },
           publisher_baptized: {
             active: { value: false, updatedAt: new Date().toISOString() },
             anointed: { value: false, updatedAt: new Date().toISOString() },
@@ -176,12 +209,10 @@ export const importDummyPersons = async (showLoading?: boolean) => {
             history: [
               {
                 id: crypto.randomUUID(),
-                start_date: {
-                  value: startDateTemp,
-                  updatedAt: new Date().toISOString(),
-                },
-                end_date: { value: null, updatedAt: '' },
-                _deleted: { value: false, updatedAt: '' },
+                _deleted: false,
+                updatedAt: new Date().toISOString(),
+                start_date: startDateTemp,
+                end_date: null,
               },
             ],
           };
@@ -194,22 +225,15 @@ export const importDummyPersons = async (showLoading?: boolean) => {
         }
 
         if (femaleStatus === 'unbaptized') {
-          person.person_data.first_month_report = {
-            value: startDateTemp,
-            updatedAt: new Date().toISOString(),
-          };
-
           person.person_data.publisher_unbaptized = {
             active: { value: true, updatedAt: new Date().toISOString() },
             history: [
               {
                 id: crypto.randomUUID(),
-                start_date: {
-                  value: startDateTemp,
-                  updatedAt: new Date().toISOString(),
-                },
-                end_date: { value: null, updatedAt: '' },
-                _deleted: { value: false, updatedAt: '' },
+                _deleted: false,
+                updatedAt: new Date().toISOString(),
+                start_date: startDateTemp,
+                end_date: null,
               },
             ],
           };
@@ -245,11 +269,6 @@ export const importDummyPersons = async (showLoading?: boolean) => {
           femaleStatus === 'FS' ||
           femaleStatus === 'FMF'
         ) {
-          person.person_data.first_month_report = {
-            value: startDateTemp,
-            updatedAt: new Date().toISOString(),
-          };
-
           const baptismStartDate = new Date(
             new Date(person.person_data.birth_date.value).setFullYear(
               new Date(person.person_data.birth_date.value).getFullYear() + 11
@@ -267,12 +286,10 @@ export const importDummyPersons = async (showLoading?: boolean) => {
             history: [
               {
                 id: crypto.randomUUID(),
-                start_date: {
-                  value: startDateTemp,
-                  updatedAt: new Date().toISOString(),
-                },
-                end_date: { value: null, updatedAt: '' },
-                _deleted: { value: false, updatedAt: '' },
+                _deleted: false,
+                updatedAt: new Date().toISOString(),
+                start_date: startDateTemp,
+                end_date: null,
               },
             ],
           };
@@ -309,16 +326,19 @@ export const importDummyPersons = async (showLoading?: boolean) => {
         ) {
           person.person_data.enrollments.push({
             id: crypto.randomUUID(),
-            enrollment: {
-              value: femaleStatus,
-              updatedAt: new Date().toISOString(),
-            },
-            start_date: {
-              value: startDateTemp,
-              updatedAt: new Date().toISOString(),
-            },
-            end_date: { value: null, updatedAt: new Date().toISOString() },
-            _deleted: { value: false, updatedAt: '' },
+            _deleted: false,
+            updatedAt: new Date().toISOString(),
+            enrollment: femaleStatus,
+            start_date: startDateTemp,
+            end_date: null,
+          });
+        }
+
+        if (femaleStatus === 'FR') {
+          person.person_data.assignments.push({
+            code: AssignmentCode.MINISTRY_HOURS_CREDIT,
+            _deleted: false,
+            updatedAt: new Date().toISOString(),
           });
         }
       }
@@ -434,12 +454,10 @@ export const importDummyPersons = async (showLoading?: boolean) => {
             history: [
               {
                 id: crypto.randomUUID(),
-                start_date: {
-                  value: startDateTemp,
-                  updatedAt: new Date().toISOString(),
-                },
-                end_date: { value: null, updatedAt: '' },
-                _deleted: { value: false, updatedAt: '' },
+                _deleted: false,
+                updatedAt: new Date().toISOString(),
+                start_date: startDateTemp,
+                end_date: null,
               },
             ],
           };
@@ -452,22 +470,15 @@ export const importDummyPersons = async (showLoading?: boolean) => {
         }
 
         if (maleStatus === 'unbaptized') {
-          person.person_data.first_month_report = {
-            value: startDateTemp,
-            updatedAt: new Date().toISOString(),
-          };
-
           person.person_data.publisher_unbaptized = {
             active: { value: true, updatedAt: new Date().toISOString() },
             history: [
               {
                 id: crypto.randomUUID(),
-                start_date: {
-                  value: startDateTemp,
-                  updatedAt: new Date().toISOString(),
-                },
-                end_date: { value: null, updatedAt: '' },
-                _deleted: { value: false, updatedAt: '' },
+                _deleted: false,
+                updatedAt: new Date().toISOString(),
+                start_date: startDateTemp,
+                end_date: null,
               },
             ],
           };
@@ -512,11 +523,6 @@ export const importDummyPersons = async (showLoading?: boolean) => {
           maleStatus === 'FS' ||
           maleStatus === 'FMF'
         ) {
-          person.person_data.first_month_report = {
-            value: startDateTemp,
-            updatedAt: new Date().toISOString(),
-          };
-
           const baptismStartDate = new Date(
             new Date(person.person_data.birth_date.value).setFullYear(
               new Date(person.person_data.birth_date.value).getFullYear() + 11
@@ -534,12 +540,10 @@ export const importDummyPersons = async (showLoading?: boolean) => {
             history: [
               {
                 id: crypto.randomUUID(),
-                start_date: {
-                  value: startDateTemp,
-                  updatedAt: new Date().toISOString(),
-                },
-                end_date: { value: null, updatedAt: '' },
-                _deleted: { value: false, updatedAt: '' },
+                _deleted: false,
+                updatedAt: new Date().toISOString(),
+                start_date: startDateTemp,
+                end_date: null,
               },
             ],
           };
@@ -584,13 +588,11 @@ export const importDummyPersons = async (showLoading?: boolean) => {
         ) {
           person.person_data.privileges.push({
             id: crypto.randomUUID(),
-            privilege: { value: 'elder', updatedAt: new Date().toISOString() },
-            start_date: {
-              value: startDateTemp,
-              updatedAt: new Date().toISOString(),
-            },
-            end_date: { value: null, updatedAt: new Date().toISOString() },
-            _deleted: { value: false, updatedAt: '' },
+            _deleted: false,
+            updatedAt: new Date().toISOString(),
+            privilege: 'elder',
+            start_date: startDateTemp,
+            end_date: null,
           });
 
           person.person_data.assignments.push(
@@ -655,13 +657,11 @@ export const importDummyPersons = async (showLoading?: boolean) => {
         if (maleStatus === 'minServ' || maleStatus === 'minServFR') {
           person.person_data.privileges.push({
             id: crypto.randomUUID(),
-            privilege: { value: 'ms', updatedAt: new Date().toISOString() },
-            start_date: {
-              value: startDateTemp,
-              updatedAt: new Date().toISOString(),
-            },
-            end_date: { value: null, updatedAt: new Date().toISOString() },
-            _deleted: { value: false, updatedAt: '' },
+            _deleted: false,
+            updatedAt: new Date().toISOString(),
+            privilege: 'ms',
+            start_date: startDateTemp,
+            end_date: null,
           });
 
           person.person_data.assignments.push(
@@ -736,37 +736,54 @@ export const importDummyPersons = async (showLoading?: boolean) => {
         ) {
           person.person_data.enrollments.push({
             id: crypto.randomUUID(),
-            enrollment: { value: 'FR', updatedAt: new Date().toISOString() },
-            start_date: {
-              value: startDateTemp,
-              updatedAt: new Date().toISOString(),
-            },
-            end_date: { value: null, updatedAt: new Date().toISOString() },
-            _deleted: { value: false, updatedAt: '' },
+            _deleted: false,
+            updatedAt: new Date().toISOString(),
+            enrollment: 'FR',
+            start_date: startDateTemp,
+            end_date: null,
           });
         }
 
         if (maleStatus === 'FS' || maleStatus === 'FMF') {
           person.person_data.enrollments.push({
             id: crypto.randomUUID(),
-            enrollment: {
-              value: maleStatus,
-              updatedAt: new Date().toISOString(),
-            },
-            start_date: {
-              value: startDateTemp,
-              updatedAt: new Date().toISOString(),
-            },
-            end_date: { value: null, updatedAt: new Date().toISOString() },
-            _deleted: { value: false, updatedAt: '' },
+            _deleted: false,
+            updatedAt: new Date().toISOString(),
+            enrollment: maleStatus,
+            start_date: startDateTemp,
+            end_date: null,
           });
         }
 
         if (maleStatus === 'elderWTConductor') {
-          person.person_data.assignments.push({
-            code: AssignmentCode.WM_WTStudyConductor,
-            updatedAt: new Date().toISOString(),
+          person.person_data.enrollments.push({
+            id: crypto.randomUUID(),
             _deleted: false,
+            updatedAt: new Date().toISOString(),
+            enrollment: 'FR',
+            start_date: startDateTemp,
+            end_date: null,
+          });
+
+          person.person_data.assignments.push(
+            {
+              code: AssignmentCode.WM_WTStudyConductor,
+              updatedAt: new Date().toISOString(),
+              _deleted: false,
+            },
+            {
+              code: AssignmentCode.MINISTRY_HOURS_CREDIT,
+              _deleted: false,
+              updatedAt: new Date().toISOString(),
+            }
+          );
+        }
+
+        if (maleStatus === 'FR') {
+          person.person_data.assignments.push({
+            code: AssignmentCode.MINISTRY_HOURS_CREDIT,
+            _deleted: false,
+            updatedAt: new Date().toISOString(),
           });
         }
       }
@@ -774,9 +791,9 @@ export const importDummyPersons = async (showLoading?: boolean) => {
 
     await appDb.persons.bulkPut(formattedData);
 
-    showProgress && (await promiseSetRecoil(rootModalOpenState, false));
+    if (showProgress) await promiseSetRecoil(rootModalOpenState, false);
   } catch (err) {
-    showProgress && (await promiseSetRecoil(rootModalOpenState, false));
+    if (showProgress) await promiseSetRecoil(rootModalOpenState, false);
     console.error(err);
   }
 };
@@ -785,6 +802,7 @@ export const dbSettingsAssignMainWTStudyConductor = async () => {
   const settings = await appDb.app_settings.toArray();
 
   const persons = await appDb.persons.toArray();
+
   const conductor = persons.find((record) =>
     record.person_data.assignments.find(
       (item) =>
@@ -805,4 +823,388 @@ export const dbSettingsAssignMainWTStudyConductor = async () => {
   await appDb.app_settings.update(1, {
     'cong_settings.weekend_meeting': weekend_meeting,
   });
+};
+
+export const dbFieldGroupAutoAssign = async () => {
+  await appDb.field_service_groups.clear();
+
+  const groups: FieldServiceGroupType[] = [];
+  const persons = await appDb.persons.toArray();
+
+  const publishers = persons.filter((person) => {
+    const isBaptized = person.person_data.publisher_baptized.active.value;
+    const isUnbaptized = person.person_data.publisher_unbaptized.active.value;
+
+    return isBaptized || isUnbaptized;
+  });
+
+  // assign overseers and assistants first
+  for (let i = 1; i <= 5; i++) {
+    const assigned_members = groups.reduce(
+      (acc: FieldServiceGroupMemberType[], current) => {
+        acc.push(...current.group_data.members);
+
+        return acc;
+      },
+      []
+    );
+
+    const members: FieldServiceGroupMemberType[] = [];
+
+    const elders = publishers.filter((person) => personIsElder(person));
+    const ms = publishers.filter((person) => personIsMS(person));
+
+    // assign overseer
+    let assigned: FieldServiceGroupMemberType;
+    do {
+      const person = getRandomArrayItem(elders);
+      const find = assigned_members.some(
+        (record) => record.person_uid === person.person_uid
+      );
+
+      if (!find) {
+        assigned = {
+          isAssistant: false,
+          isOverseer: true,
+          person_uid: person.person_uid,
+          sort_index: 0,
+        };
+
+        members.push(assigned);
+        assigned_members.push(assigned);
+      }
+    } while (!assigned);
+
+    // assign assistant
+    assigned = undefined;
+    do {
+      const person = getRandomArrayItem(ms);
+      const find = assigned_members.some(
+        (record) => record.person_uid === person.person_uid
+      );
+
+      if (!find) {
+        assigned = {
+          isAssistant: true,
+          isOverseer: false,
+          person_uid: person.person_uid,
+          sort_index: 1,
+        };
+
+        members.push(assigned);
+        assigned_members.push(assigned);
+      }
+    } while (!assigned);
+
+    groups.push({
+      group_id: crypto.randomUUID(),
+      group_data: {
+        _deleted: false,
+        updatedAt: new Date().toISOString(),
+        name: '',
+        sort_index: i - 1,
+        members,
+      },
+    });
+  }
+
+  // assign group members
+  let i = 1;
+  for (const group of groups) {
+    const assigned_members = groups.reduce(
+      (acc: FieldServiceGroupMemberType[], current) => {
+        acc.push(...current.group_data.members);
+
+        return acc;
+      },
+      []
+    );
+
+    const members = group.group_data.members;
+    const length =
+      i < 5
+        ? getRandomNumber(16, 20)
+        : publishers.length - assigned_members.length + 2;
+
+    do {
+      const person = getRandomArrayItem(publishers);
+
+      const find = assigned_members.some(
+        (record) => record.person_uid === person.person_uid
+      );
+
+      if (!find) {
+        const assigned = {
+          isAssistant: false,
+          isOverseer: false,
+          person_uid: person.person_uid,
+          sort_index: members.length,
+        };
+
+        members.push(assigned);
+        assigned_members.push(assigned);
+      }
+    } while (members.length < length);
+
+    i++;
+  }
+
+  await appDb.field_service_groups.bulkPut(groups);
+};
+
+export const getPublishersActive = async (month: string) => {
+  const persons = await appDb.persons.toArray();
+
+  const result = persons.filter((record) => {
+    const isPublisher = personIsPublisher(record, month);
+    return isPublisher;
+  });
+
+  return result;
+};
+
+export const dbReportsFillRandom = async () => {
+  await appDb.cong_field_service_reports.clear();
+
+  const year = new Date().getFullYear();
+  const startMonth = `${year - 1}/09`;
+  const endMonth = currentReportMonth();
+
+  const monthRange = createArrayFromMonths(startMonth, endMonth);
+
+  const reportsToSave: CongFieldServiceReportType[] = [];
+
+  for await (const month of monthRange) {
+    const active_publishers = await getPublishersActive(month);
+
+    for (const person of active_publishers) {
+      const report = structuredClone(congFieldServiceReportSchema);
+      report.report_id = crypto.randomUUID();
+      report.report_data.person_uid = person.person_uid;
+      report.report_data.report_date = month;
+
+      const isAP = personIsEnrollmentActive(person, 'AP', month);
+      const isFMF = personIsEnrollmentActive(person, 'FMF', month);
+      const isFR = personIsEnrollmentActive(person, 'FR', month);
+      const isFS = personIsEnrollmentActive(person, 'FS', month);
+      const isBaptized = personIsBaptizedPublisher(person, month);
+
+      if (isFMF || isFS) {
+        report.report_data.hours.field_service = getRandomNumber(100, 115);
+
+        if (isFMF) report.report_data.bible_studies = getRandomNumber(20, 30);
+        if (isFS) report.report_data.bible_studies = getRandomNumber(15, 20);
+      }
+
+      if (isFR) {
+        const reportCredit = person.person_data.assignments.some(
+          (record) =>
+            record._deleted === false &&
+            record.code === AssignmentCode.MINISTRY_HOURS_CREDIT
+        );
+
+        if (reportCredit) {
+          const service = getRandomNumber(20, 40);
+          const credit = 55 - service;
+
+          report.report_data.hours.field_service = service;
+          report.report_data.hours.credit = { approved: credit, value: 0 };
+        }
+
+        if (!reportCredit) {
+          report.report_data.hours.field_service = getRandomNumber(50, 60);
+        }
+
+        report.report_data.bible_studies = getRandomNumber(10, 15);
+      }
+
+      if (isAP) {
+        report.report_data.hours.field_service = getRandomNumber(30, 40);
+        report.report_data.bible_studies = getRandomNumber(5, 10);
+      }
+
+      if (!isFMF && !isFS && !isFR && !isAP && isBaptized) {
+        report.report_data.bible_studies = getRandomNumber(1, 5);
+      }
+
+      report.report_data.shared_ministry = true;
+      report.report_data.status = 'confirmed';
+      report.report_data.updatedAt = new Date().toISOString();
+      reportsToSave.push(report);
+    }
+  }
+
+  await appDb.cong_field_service_reports.bulkPut(reportsToSave);
+};
+
+export const dbMeetingAttendanceFill = async () => {
+  await appDb.meeting_attendance.clear();
+
+  const year = new Date().getFullYear();
+  const startMonth = `${year - 1}/09`;
+  const endMonth = currentReportMonth();
+
+  const monthRange = createArrayFromMonths(startMonth, endMonth);
+
+  const attendances: MeetingAttendanceType[] = [];
+
+  for (const month of monthRange) {
+    const attendance = structuredClone(meetingAttendanceSchema);
+    attendance.month_date = month;
+    const weeks = weeksInMonth(month);
+
+    for (let i = 1; i <= weeks.length; i++) {
+      const weeklyAttendance = attendance[`week_${i}`] as WeeklyAttendance;
+
+      const mainMidweek = weeklyAttendance.midweek.find(
+        (record) => record.type === 'main'
+      );
+      mainMidweek.present = getRandomNumber(95, 110);
+      mainMidweek.updatedAt = new Date().toISOString();
+
+      const mainWeekend = weeklyAttendance.weekend.find(
+        (record) => record.type === 'main'
+      );
+      mainWeekend.present = getRandomNumber(105, 130);
+      mainWeekend.updatedAt = new Date().toISOString();
+    }
+
+    attendances.push(attendance);
+  }
+
+  await appDb.meeting_attendance.bulkPut(attendances);
+};
+
+export const dbBranchS1ReportsFill = async () => {
+  await appDb.branch_field_service_reports.clear();
+
+  const congReports = await appDb.cong_field_service_reports.toArray();
+  const persons = await appDb.persons.toArray();
+  const attendances = await appDb.meeting_attendance.toArray();
+
+  const year = new Date().getFullYear();
+  const startMonth = `${year - 1}/09`;
+  const endMonth = currentReportMonth();
+
+  const reportsToSave: BranchFieldServiceReportType[] = [];
+
+  const monthRange = createArrayFromMonths(startMonth, endMonth);
+
+  for (const month of monthRange) {
+    // get all confirmed reports
+    const reports = congReports.filter(
+      (record) =>
+        record.report_data.status === 'confirmed' &&
+        record.report_data.shared_ministry &&
+        record.report_data.report_date === month
+    );
+
+    // group reports
+    const publishers: CongFieldServiceReportType[] = [];
+    const APs: CongFieldServiceReportType[] = [];
+    const FRs: CongFieldServiceReportType[] = [];
+
+    for (const report of reports) {
+      const person = persons.find(
+        (record) => record.person_uid === report.report_data.person_uid
+      );
+
+      if (!person) continue;
+
+      const isAP = personIsEnrollmentActive(person, 'AP', month);
+      const isFMF = personIsEnrollmentActive(person, 'FMF', month);
+      const isFR = personIsEnrollmentActive(person, 'FR', month);
+      const isFS = personIsEnrollmentActive(person, 'FS', month);
+
+      // skip SFTS reports
+      if (isFMF || isFS) continue;
+
+      if (isAP) {
+        APs.push(report);
+        continue;
+      }
+
+      if (isFR) {
+        FRs.push(report);
+        continue;
+      }
+
+      // default to publishers
+      publishers.push(report);
+    }
+
+    const branchReport = structuredClone(SchemaBranchFieldServiceReport);
+    branchReport.report_date = month;
+
+    const active = await getPublishersActive(month);
+    branchReport.report_data.publishers_active = active.length;
+
+    // get weekend total
+    const attendance = attendances.find(
+      (record) => record.month_date === month
+    );
+    let weekendTotal = 0;
+    let weekendCount = 0;
+
+    for (let i = 1; i <= 5; i++) {
+      const weekData = attendance[`week_${i}`] as WeeklyAttendance;
+      const meetingData = weekData.weekend;
+
+      const sum = meetingData.reduce((acc, current) => {
+        if (current?.present) {
+          return acc + current.present;
+        }
+
+        return acc;
+      }, 0);
+
+      if (sum > 0) weekendCount++;
+
+      weekendTotal += sum;
+    }
+
+    const weekendAverage =
+      weekendTotal === 0 ? 0 : Math.round(weekendTotal / weekendCount);
+
+    branchReport.report_data.weekend_meeting_average = weekendAverage;
+
+    branchReport.report_data.publishers = {
+      report_count: publishers.length,
+      bible_studies: publishers.reduce(
+        (acc, current) => acc + current.report_data.bible_studies,
+        0
+      ),
+    };
+
+    branchReport.report_data.APs = {
+      report_count: APs.length,
+      hours: APs.reduce(
+        (acc, current) => acc + current.report_data.hours.field_service,
+        0
+      ),
+      bible_studies: APs.reduce(
+        (acc, current) => acc + current.report_data.bible_studies,
+        0
+      ),
+    };
+
+    branchReport.report_data.FRs = {
+      report_count: FRs.length,
+      hours: FRs.reduce(
+        (acc, current) => acc + current.report_data.hours.field_service,
+        0
+      ),
+      bible_studies: FRs.reduce(
+        (acc, current) => acc + current.report_data.bible_studies,
+        0
+      ),
+    };
+
+    branchReport.report_data.submitted = true;
+    branchReport.report_data.updatedAt = new Date().toISOString();
+
+    reportsToSave.push(branchReport);
+  }
+
+  await appDb.branch_field_service_reports.bulkPut(reportsToSave);
 };

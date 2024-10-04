@@ -41,12 +41,14 @@ const BadgeContent = (props: BadgeContentPropsType) => {
   );
 };
 
-const BadgeTypography = (props: BadgeTypographyPropsType) => {
-  const { children, sx } = props;
-
+const BadgeTypography = ({
+  children,
+  className = 'label-small-medium',
+  sx,
+}: BadgeTypographyPropsType) => {
   return (
     <Typography
-      className="label-small-medium"
+      className={className}
       sx={{
         display: 'flex',
         alignItems: 'center',
@@ -58,7 +60,7 @@ const BadgeTypography = (props: BadgeTypographyPropsType) => {
   );
 };
 
-const CustomBadge = (props: BadgePropsType) => {
+const Badge = (props: BadgePropsType) => {
   const {
     icon,
     size,
@@ -68,6 +70,7 @@ const CustomBadge = (props: BadgePropsType) => {
     fullWidth,
     centerContent,
     borderStyle,
+    className,
     sx = {},
   } = props;
 
@@ -89,17 +92,17 @@ const CustomBadge = (props: BadgePropsType) => {
   };
 
   const getBackgroundColor = () => {
-    if (color == 'transparent') return color;
+    if (color === 'transparent') return color;
     if (filled) {
-      if (color == 'grey') {
+      if (color === 'grey') {
         return `var(--${color}-400)`;
       } else {
         return `var(--${color}-main)`;
       }
     } else {
-      if (color == 'grey') {
+      if (color === 'grey') {
         return `var(--${color}-150)`;
-      } else if (color == 'accent') {
+      } else if (color === 'accent') {
         return `var(--accent-200)`;
       } else {
         return `var(--${color}-secondary)`;
@@ -109,7 +112,7 @@ const CustomBadge = (props: BadgePropsType) => {
 
   return (
     <>
-      {size == 'small' && (
+      {size === 'small' && (
         <Box
           sx={{
             border: '2px',
@@ -134,6 +137,7 @@ const CustomBadge = (props: BadgePropsType) => {
             color={getColor()}
           >
             <BadgeTypography
+              className={className}
               sx={{
                 fontSize: '12px',
                 fontWeight: '500',
@@ -146,7 +150,7 @@ const CustomBadge = (props: BadgePropsType) => {
           </BadgeContent>
         </Box>
       )}
-      {size == 'medium' && (
+      {size === 'medium' && (
         <Box
           sx={{
             border: '1px',
@@ -172,6 +176,7 @@ const CustomBadge = (props: BadgePropsType) => {
             color={getColor()}
           >
             <BadgeTypography
+              className={className}
               sx={{
                 fontSize: '14px',
                 fontWeight: '520',
@@ -184,7 +189,7 @@ const CustomBadge = (props: BadgePropsType) => {
           </BadgeContent>
         </Box>
       )}
-      {size == 'big' && (
+      {size === 'big' && (
         <Box
           sx={{
             border: '4px',
@@ -210,6 +215,7 @@ const CustomBadge = (props: BadgePropsType) => {
               color={getColor()}
             >
               <BadgeTypography
+                className={className}
                 sx={{
                   fontSize: '16px',
                   fontWeight: '420',
@@ -227,4 +233,4 @@ const CustomBadge = (props: BadgePropsType) => {
   );
 };
 
-export default CustomBadge;
+export default Badge;

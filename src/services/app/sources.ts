@@ -12,9 +12,15 @@ import { assignmentTypeAYFOnlyState } from '@states/assignment';
 import { dbSourcesSave } from '@services/dexie/sources';
 import { dbSchedCheck } from '@services/dexie/schedules';
 import { AssignmentAYFOnlyType } from '@definition/assignment';
-import { JWLangState } from '@states/app';
+import { cookiesConsentState, JWLangState } from '@states/app';
 import { getTranslation } from '@services/i18n/translation';
 import { MeetingType } from '@definition/app';
+import {
+  sourcesJWAutoImportFrequencyState,
+  sourcesJWAutoImportState,
+} from '@states/settings';
+import { SourceFrequency } from '@definition/settings';
+import { addWeeks } from '@utils/date';
 
 export const sourcesImportEPUB = async (fileEPUB) => {
   const data = await loadEPUB(fileEPUB);
@@ -23,13 +29,31 @@ export const sourcesImportEPUB = async (fileEPUB) => {
 
 export const sourcesImportJW = async (dataJw) => {
   await sourcesFormatAndSaveData(dataJw);
+
+  const isAutoImportEnabled: boolean = await promiseGetRecoil(
+    sourcesJWAutoImportState
+  );
+  const cookiesConsent: boolean = await promiseGetRecoil(cookiesConsentState);
+
+  const autoImportFrequency: SourceFrequency = await promiseGetRecoil(
+    sourcesJWAutoImportFrequencyState
+  );
+
+  if (cookiesConsent && isAutoImportEnabled) {
+    const nextSync = addWeeks(new Date(), autoImportFrequency);
+
+    localStorage.setItem(
+      'organized_jw_import_next_sync',
+      nextSync.toISOString()
+    );
+  }
 };
 
 const sourcesFormatAndSaveData = async (data: SourceWeekIncomingType[]) => {
   const source_lang = await promiseGetRecoil(JWLangState);
 
   for await (const src of data) {
-    const obj = <SourceWeekType>{};
+    const obj = {} as SourceWeekType;
 
     const isMWB = Object.keys(src).includes('mwb_week_date_locale');
     const isW = Object.keys(src).includes('w_study_date_locale');
@@ -42,7 +66,7 @@ const sourcesFormatAndSaveData = async (data: SourceWeekIncomingType[]) => {
         assignmentTypeAYFOnlyState
       );
 
-      obj.midweek_meeting = <SourceWeekType['midweek_meeting']>{};
+      obj.midweek_meeting = {} as SourceWeekType['midweek_meeting'];
 
       obj.midweek_meeting.week_date_locale = {
         [source_lang]: src.mwb_week_date_locale,
@@ -169,7 +193,7 @@ const sourcesFormatAndSaveData = async (data: SourceWeekIncomingType[]) => {
     }
 
     if (isW) {
-      obj.weekend_meeting = <SourceWeekType['weekend_meeting']>{};
+      obj.weekend_meeting = {} as SourceWeekType['weekend_meeting'];
 
       obj.weekend_meeting.song_first = [];
       obj.weekend_meeting.public_talk = [];
@@ -408,4 +432,27 @@ export const sourcesSongConclude = ({
   }
 
   return song;
+};
+
+export const sourcesLCGet = (
+  part: LivingAsChristiansType,
+  dataView: string,
+  lang: string
+) => {
+  const srcOverride = part.title.override.find(
+    (record) => record.type === dataView
+  );
+
+  const srcDefault = part.title.default[lang];
+  const src = srcOverride?.value.length > 0 ? srcOverride.value : srcDefault;
+
+  const descOverride = part.desc.override.find(
+    (record) => record.type === dataView
+  );
+
+  const descDefault = part.desc.default[lang];
+  const desc =
+    descOverride?.value.length > 0 ? descOverride.value : descDefault;
+
+  return { src, desc };
 };

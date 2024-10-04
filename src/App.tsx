@@ -1,7 +1,7 @@
-import { Suspense, lazy } from 'react';
+import { lazy } from 'react';
 import { RouterProvider, createHashRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ErrorBoundary, WaitingCircular } from '@components/index';
+import { ErrorBoundary } from '@components/index';
 import { RootLayout } from '@layouts/index';
 
 // lazy loading
@@ -13,11 +13,11 @@ const PublicTalksList = lazy(
   () => import('@pages/meeting_materials/public_talks_list')
 );
 const BranchOfficeReports = lazy(() => import('@pages/reports/branch_office'));
-const MeetingAttendanceReports = lazy(
+const MeetingAttendance = lazy(
   () => import('@pages/reports/meeting_attendance')
 );
 const FieldServiceReportsPage = lazy(
-  () => import('@pages/reports/field-service')
+  () => import('@pages/reports/field_service')
 );
 const MidweekMeeting = lazy(() => import('@pages/meetings/midweek'));
 const MinistryReport = lazy(() => import('@pages/ministry/ministry_report'));
@@ -27,24 +27,28 @@ const AuxiliaryPioneerApplication = lazy(
 );
 const SpeakersCatalog = lazy(() => import('@pages/persons/speakers_catalog'));
 const WeekendMeeting = lazy(() => import('@pages/meetings/weekend'));
-const ServiceGroups = lazy(() => import('@pages/congregation/service_groups'));
-const PublisherRecord = lazy(
-  () => import('@pages/congregation/publisher_records')
+const FieldServiceGroups = lazy(
+  () => import('@pages/congregation/field_service_groups')
 );
-const PublisherRecordDetail = lazy(
-  () => import('@pages/congregation/publisher_records_detail')
+const PublisherRecord = lazy(() => import('@pages/reports/publisher_records'));
+const PublisherRecordDetails = lazy(
+  () => import('@pages/reports/publisher_records_details')
 );
-const ManageAccessAll = lazy(
-  () => import('@pages/manage_access/manage_access_all')
+const UsersAll = lazy(
+  () => import('@pages/congregation/manage_access/all_users')
 );
-const ManageAccessPersonDetails = lazy(
-  () => import('@pages/manage_access/manage_access_person_details')
+const UserDetails = lazy(
+  () => import('@pages/congregation/manage_access/user_details')
 );
 const WeeklySchedules = lazy(() => import('@pages/meetings/schedules'));
 const CongregationSettings = lazy(() => import('@pages/congregation/settings'));
-
-const ComponentsPreview = lazy(() => import('@components/preview'));
-const PdfPreview = lazy(() => import('@components/preview/PDF_Peview'));
+const UpcomingEvents = lazy(
+  () => import('@pages/congregation/upcoming_events')
+);
+const Applications = lazy(() => import('@pages/persons/applications'));
+const ApplicationDetails = lazy(
+  () => import('@pages/persons/application_details')
+);
 
 const queryClient = new QueryClient();
 
@@ -53,11 +57,6 @@ const App = ({ updatePwa }: { updatePwa: VoidFunction }) => {
     {
       errorElement: <ErrorBoundary />,
       children: [
-        { path: '/components-preview', element: <ComponentsPreview /> },
-        {
-          path: '/pdf-document',
-          element: <PdfPreview />,
-        },
         {
           element: <RootLayout updatePwa={updatePwa} />,
           children: [
@@ -69,7 +68,7 @@ const App = ({ updatePwa }: { updatePwa: VoidFunction }) => {
             },
             {
               path: '/reports/meeting-attendance',
-              element: <MeetingAttendanceReports />,
+              element: <MeetingAttendance />,
             },
             {
               path: '/reports/field-service',
@@ -77,9 +76,15 @@ const App = ({ updatePwa }: { updatePwa: VoidFunction }) => {
             },
             { path: '/persons/:id', element: <PersonDetails /> },
             { path: '/persons/new', element: <PersonDetails /> },
+            { path: '/pioneer-applications', element: <Applications /> },
+            {
+              path: '/pioneer-applications/:id',
+              element: <ApplicationDetails />,
+            },
             { path: '/user-profile', element: <MyProfile /> },
             { path: '/public-talks-list', element: <PublicTalksList /> },
             { path: '/ministry-report', element: <MinistryReport /> },
+            { path: '/upcoming-events', element: <UpcomingEvents /> },
             {
               path: '/auxiliary-pioneer-application',
               element: <AuxiliaryPioneerApplication />,
@@ -87,16 +92,16 @@ const App = ({ updatePwa }: { updatePwa: VoidFunction }) => {
             { path: '/speakers-catalog', element: <SpeakersCatalog /> },
             { path: '/midweek-meeting', element: <MidweekMeeting /> },
             { path: '/weekend-meeting', element: <WeekendMeeting /> },
-            { path: '/service-groups', element: <ServiceGroups /> },
+            { path: '/field-service-groups', element: <FieldServiceGroups /> },
             { path: '/publisher-records', element: <PublisherRecord /> },
             {
               path: '/publisher-records/:id',
-              element: <PublisherRecordDetail />,
+              element: <PublisherRecordDetails />,
             },
-            { path: '/manage-access', element: <ManageAccessAll /> },
+            { path: '/manage-access', element: <UsersAll /> },
             {
               path: '/manage-access/:id',
-              element: <ManageAccessPersonDetails />,
+              element: <UserDetails />,
             },
             { path: '/service-year', element: <ServiceYear /> },
             { path: '/weekly-schedules', element: <WeeklySchedules /> },
@@ -113,9 +118,7 @@ const App = ({ updatePwa }: { updatePwa: VoidFunction }) => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Suspense fallback={<WaitingCircular />}>
-        <RouterProvider router={router} />
-      </Suspense>
+      <RouterProvider router={router} />
     </QueryClientProvider>
   );
 };

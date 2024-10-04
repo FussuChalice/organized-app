@@ -6,20 +6,20 @@ import { personCurrentDetailsState } from '@states/persons';
 import { computeYearsDiff } from '@utils/date';
 import { generateDisplayName } from '@utils/common';
 import { appLangState } from '@states/app';
-import { displayNameEnableState } from '@states/settings';
+import { displayNameMeetingsEnableState } from '@states/settings';
 
 const useBasicInfo = () => {
   const person = useRecoilValue(personCurrentDetailsState);
   const appLang = useRecoilValue(appLangState);
-  const displayNameEnabled = useRecoilValue(displayNameEnableState);
+  const displayNameEnabled = useRecoilValue(displayNameMeetingsEnableState);
 
   const { tabletDown } = useBreakpoints();
 
+  const [isInactive, setIsInactive] = useState(false);
   const [age, setAge] = useState('0');
   const [nameFlex, setNameFlex] = useState<
     'row' | 'row-reverse' | 'column' | 'column-reverse'
   >('row');
-  const [isInactive, setIsInactive] = useState(false);
 
   const handleChangeFirstname = async (value: string) => {
     const newPerson = structuredClone(person);
@@ -27,16 +27,13 @@ const useBasicInfo = () => {
     newPerson.person_data.person_firstname.value = value;
     newPerson.person_data.person_firstname.updatedAt = new Date().toISOString();
 
-    if (displayNameEnabled) {
-      const dispName = generateDisplayName(
-        newPerson.person_data.person_lastname.value,
-        value
-      );
-      newPerson.person_data.person_display_name.value = dispName;
-      newPerson.person_data.person_display_name.updatedAt =
-        new Date().toISOString();
-    }
-
+    const dispName = generateDisplayName(
+      newPerson.person_data.person_lastname.value,
+      value
+    );
+    newPerson.person_data.person_display_name.value = dispName;
+    newPerson.person_data.person_display_name.updatedAt =
+      new Date().toISOString();
     await setPersonCurrentDetails(newPerson);
   };
 
@@ -45,15 +42,13 @@ const useBasicInfo = () => {
     newPerson.person_data.person_lastname.value = value;
     newPerson.person_data.person_lastname.updatedAt = new Date().toISOString();
 
-    if (displayNameEnabled) {
-      const dispName = generateDisplayName(
-        value,
-        newPerson.person_data.person_firstname.value
-      );
-      newPerson.person_data.person_display_name.value = dispName;
-      newPerson.person_data.person_display_name.updatedAt =
-        new Date().toISOString();
-    }
+    const dispName = generateDisplayName(
+      value,
+      newPerson.person_data.person_firstname.value
+    );
+    newPerson.person_data.person_display_name.value = dispName;
+    newPerson.person_data.person_display_name.updatedAt =
+      new Date().toISOString();
 
     await setPersonCurrentDetails(newPerson);
   };
@@ -160,8 +155,7 @@ const useBasicInfo = () => {
     if (person.person_data.publisher_baptized.active.value) {
       const isActive =
         person.person_data.publisher_baptized.history.filter(
-          (record) =>
-            record._deleted.value === false && record.end_date.value === null
+          (record) => record._deleted === false && record.end_date === null
         ).length === 1;
 
       setIsInactive(!isActive);
@@ -170,8 +164,7 @@ const useBasicInfo = () => {
     if (person.person_data.publisher_unbaptized.active.value) {
       const isActive =
         person.person_data.publisher_unbaptized.history.filter(
-          (record) =>
-            record._deleted.value === false && record.end_date.value === null
+          (record) => record._deleted === false && record.end_date === null
         ).length === 1;
       setIsInactive(!isActive);
     }

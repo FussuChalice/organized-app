@@ -29,6 +29,7 @@ export enum AssignmentCode {
   MM_AuxiliaryCounselor = 128,
   MM_AssistantOnly = 129,
   WM_WTStudyConductor = 130,
+  MINISTRY_HOURS_CREDIT = 300,
 }
 
 export type AssignmentType = {
@@ -77,7 +78,7 @@ export type AssignmentAYFOnlyType = {
   label: string;
 };
 
-export type AssignmentFieldType =
+export type AssignmentFieldMidweekType =
   | 'MM_Chairman_A'
   | 'MM_Chairman_B'
   | 'MM_OpeningPrayer'
@@ -106,7 +107,9 @@ export type AssignmentFieldType =
   | 'MM_LCPart3'
   | 'MM_LCCBSConductor'
   | 'MM_LCCBSReader'
-  | 'MM_ClosingPrayer'
+  | 'MM_ClosingPrayer';
+
+export type AssignmentFieldWeekendType =
   | 'WM_Chairman'
   | 'WM_OpeningPrayer'
   | 'WM_Speaker_Part1'
@@ -114,6 +117,11 @@ export type AssignmentFieldType =
   | 'WM_WTStudy_Conductor'
   | 'WM_WTStudy_Reader'
   | 'WM_ClosingPrayer'
+  | 'WM_SubstituteSpeaker';
+
+export type AssignmentFieldType =
+  | AssignmentFieldMidweekType
+  | AssignmentFieldWeekendType
+  | 'MM_CircuitOverseer'
   | 'WM_CircuitOverseer'
-  | 'WM_SubstituteSpeaker'
   | 'WM_Speaker_Outgoing';

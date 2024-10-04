@@ -20,6 +20,8 @@ const Dashboard = () => {
     isCongNew,
     handleCloseNewCongNotice,
     handleOpenMyAssignments,
+    countFutureAssignments,
+    publisher,
   } = useDashboard();
 
   return (
@@ -29,7 +31,13 @@ const Dashboard = () => {
           {t('tr_greeting', { firstName })} &#128075;
         </Typography>
         <TextMarkup
-          content={t('tr_meetingAssignments', { assignment: 3 })}
+          content={
+            countFutureAssignments === 0
+              ? t('tr_noMeetingAssignments')
+              : t('tr_meetingAssignments', {
+                  assignment: countFutureAssignments,
+                })
+          }
           className="h3"
           anchorClassName="h3"
           anchorColor="var(--accent-main)"
@@ -43,8 +51,9 @@ const Dashboard = () => {
           gridGap: '24px',
         }}
       >
-        <MinistryCard />
-        <MeetingsCard />
+        {publisher && <MinistryCard />}
+
+        <MeetingsCard assignmentCount={countFutureAssignments} />
         <PersonsCard />
         <MeetingsMaterialsCard />
         <ReportsCard />

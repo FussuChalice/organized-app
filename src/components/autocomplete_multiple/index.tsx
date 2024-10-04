@@ -20,6 +20,11 @@ const AutocompleteMultiple = <T,>(props: AutocompleteMutilePropsType<T>) => {
       clearIcon={false}
       PaperComponent={CustomPaper}
       ListboxComponent={CustomListBoxComponent}
+      sx={{
+        '& .MuiAutocomplete-popupIndicator': {
+          color: 'var(--black)',
+        },
+      }}
       noOptionsText={
         <Box sx={{ backgroundColor: 'var(--white)' }}>
           <Typography className="body-regular">{t('tr_noOptions')}</Typography>
@@ -44,6 +49,7 @@ const AutocompleteMultiple = <T,>(props: AutocompleteMutilePropsType<T>) => {
               paddingTop: `calc(14.5px - ${varHeight}px)`,
               paddingBottom: `calc(14.5px - ${varHeight}px)`,
               flex: '1 0 0',
+              color: 'var(--black)',
             },
             '.MuiInput-root:hover:before': {
               borderBottom: '1px solid var(--accent-main)',

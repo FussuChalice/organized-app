@@ -1,4 +1,10 @@
-import { ReactNode, SyntheticEvent, useEffect, useState } from 'react';
+import {
+  Fragment,
+  ReactNode,
+  SyntheticEvent,
+  useEffect,
+  useState,
+} from 'react';
 import { Box, Tab, Tabs, tabsClasses } from '@mui/material';
 import { CustomTabPanel } from '@components/tabs';
 import { CustomTabProps } from '@components/tabs/index.types';
@@ -14,8 +20,12 @@ function ScrollableTabs({
   value,
   indicatorMode,
   onChange,
+  className,
+  variant = 'scrollable',
+  minHeight = '48px',
+  sx,
 }: CustomTabProps) {
-  const [valueOfActivePanel, setValueOfActivePanel] = useState(value || 0);
+  const [valueOfActivePanel, setValueOfActivePanel] = useState(value ?? false);
 
   /**
    * Handles tab change event.
@@ -26,13 +36,14 @@ function ScrollableTabs({
   const handleChange = (event: SyntheticEvent, newValue: number) => {
     if (!indicatorMode) {
       event.preventDefault();
-      setValueOfActivePanel(newValue);
-      onChange && onChange(newValue);
     }
+
+    setValueOfActivePanel(newValue);
+    onChange?.(newValue);
   };
 
   useEffect(() => {
-    setValueOfActivePanel(value || 0);
+    setValueOfActivePanel(value ?? false);
   }, [value]);
 
   return (
@@ -41,9 +52,18 @@ function ScrollableTabs({
         <Tabs
           value={valueOfActivePanel}
           onChange={handleChange}
-          variant="scrollable"
-          scrollButtons
-          TabIndicatorProps={{ hidden: true }}
+          variant={variant}
+          className={className}
+          TabIndicatorProps={{
+            hidden: !indicatorMode,
+            sx: {
+              backgroundColor: indicatorMode
+                ? 'var(--accent-main)'
+                : 'transparent',
+              borderRadius: indicatorMode && '16px 16px 0px 0px',
+              height: '4px',
+            },
+          }}
           slots={{
             EndScrollButtonIcon: ArrowForwardIosIcon,
             StartScrollButtonIcon: ArrowBackIosIcon,
@@ -65,25 +85,31 @@ function ScrollableTabs({
               color: 'var(--accent-main)',
             },
             '& span.MuiTouchRipple-root': { borderRadius: 'var(--radius-max)' },
+            '& .MuiSvgIcon-root g path': {
+              fill: 'var(--accent-400)',
+            },
+            '& .Mui-selected > .MuiSvgIcon-root g path': {
+              fill: 'var(--accent-dark)',
+            },
+            ...sx,
           }}
         >
           {tabs.map(
-            ({ label, icon }): ReactNode => (
+            ({ label, icon, className }, index): ReactNode => (
               <Tab
                 label={label}
-                key={label}
+                key={index}
+                className={className}
                 icon={icon}
                 iconPosition="end"
                 sx={{
+                  minHeight,
                   fontSize: 16,
-                  textTransform: 'capitalize',
+                  textTransform: 'none',
                   ':not(&.Mui-selected)': { fontWeight: 400 },
                   '&.Mui-Selected': {
                     fontWeight: 600,
                     fontSize: 18,
-                  },
-                  path: {
-                    fill: 'var(--accent-main)',
                   },
                 }}
               />
@@ -94,9 +120,13 @@ function ScrollableTabs({
 
       {tabs.map(
         (tab, i: number): ReactNode => (
-          <CustomTabPanel value={valueOfActivePanel} index={i} key={tab.label}>
-            {tab.Component}
-          </CustomTabPanel>
+          <Fragment key={i}>
+            {tab.Component && (
+              <CustomTabPanel value={valueOfActivePanel} index={i}>
+                {tab.Component}
+              </CustomTabPanel>
+            )}
+          </Fragment>
         )
       )}
     </Box>

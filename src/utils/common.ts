@@ -91,8 +91,6 @@ export const generateDisplayName = (lastname: string, firstname: string) => {
   return varDisplay;
 };
 
-export const createArray = (n) => Array.from({ length: n }, (_, b) => b);
-
 export const localStorageGetItem = (key: string) => {
   if (typeof localStorage === 'undefined') {
     return;
@@ -186,3 +184,29 @@ export const createNumbersArray = (length: number) => {
 
 export const styledRemoveProps = (prop: PropertyKey, userProp: string[]) =>
   !userProp.includes(String(prop));
+
+export const copyToClipboard = async (value: string) => {
+  await navigator.clipboard.writeText(value);
+};
+
+export const getRandomArrayItem = <T>(array: T[]) => {
+  return array[Math.floor(Math.random() * array.length)];
+};
+
+export const debounce = <T extends (...args: unknown[]) => void>(
+  func: T,
+  delay: number
+): ((...args: Parameters<T>) => void) => {
+  let timeoutId: NodeJS.Timeout;
+
+  return (...args: Parameters<T>) => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => {
+      func(...args);
+    }, delay);
+  };
+};
+
+export const getRandomNumber = (min: number, max: number) => {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+};

@@ -1,9 +1,11 @@
 import {
+  APFormOutgoing,
   User2FAResponseType,
   UserSessionsResponseType,
   ValidateMeResponseType,
 } from '@definition/api';
 import { apiDefault } from './common';
+import { APRecordType } from '@definition/ministry';
 
 export const apiUserLogout = async () => {
   const { apiHost, appVersion: appversion, idToken } = await apiDefault();
@@ -219,3 +221,175 @@ export const apiGetUserSessions =
       result: data.message ? { message: data.message } : { sessions: data },
     };
   };
+
+export const apiUserFieldServiceReportPost = async ({
+  report_month,
+  shared_ministry,
+  bible_studies,
+  comments,
+  hours,
+  hours_credits,
+}: {
+  report_month: string;
+  shared_ministry: boolean;
+  hours: number;
+  hours_credits: number;
+  bible_studies: number;
+  comments: string;
+}) => {
+  const {
+    apiHost,
+    appVersion: appversion,
+    userID,
+    idToken,
+  } = await apiDefault();
+
+  const res = await fetch(
+    `${apiHost}api/v3/users/${userID}/field-service-reports`,
+    {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${idToken}`,
+        appclient: 'organized',
+        appversion,
+      },
+      body: JSON.stringify({
+        report_month,
+        shared_ministry,
+        bible_studies,
+        comments,
+        hours,
+        hours_credits,
+      }),
+    }
+  );
+
+  if (res.ok && res.status === 200) {
+    const data = await res.json();
+
+    return {
+      status: res.status,
+      message: data.message as string,
+    };
+  }
+
+  if (res.status !== 200) {
+    const data = await res.json();
+
+    throw new Error(data.message);
+  }
+};
+
+export const apiUserFieldServiceReportDelete = async ({
+  report_month,
+}: {
+  report_month: string;
+}) => {
+  const {
+    apiHost,
+    appVersion: appversion,
+    userID,
+    idToken,
+  } = await apiDefault();
+
+  const res = await fetch(
+    `${apiHost}api/v3/users/${userID}/field-service-reports/${report_month}`,
+    {
+      method: 'DELETE',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${idToken}`,
+        appclient: 'organized',
+        appversion,
+      },
+    }
+  );
+
+  if (res.ok && res.status === 200) {
+    const data = await res.json();
+
+    return {
+      status: res.status,
+      message: data.message as string,
+    };
+  }
+
+  if (res.ok && res.status !== 200) {
+    const data = await res.json();
+
+    throw new Error(data.message);
+  }
+};
+
+export const apiUserSubmitApplication = async (application: APFormOutgoing) => {
+  const {
+    apiHost,
+    appVersion: appversion,
+    userID,
+    idToken,
+  } = await apiDefault();
+
+  const res = await fetch(`${apiHost}api/v3/users/${userID}/applications`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${idToken}`,
+      appclient: 'organized',
+      appversion,
+    },
+    body: JSON.stringify({ application }),
+  });
+
+  if (res.ok && res.status === 200) {
+    const data = await res.json();
+
+    return {
+      status: res.status,
+      message: data.message as string,
+    };
+  }
+
+  if (res.status !== 200) {
+    const data = await res.json();
+
+    throw new Error(data.message);
+  }
+};
+
+export const apiUserGetApplications = async (): Promise<APRecordType[]> => {
+  const {
+    apiHost,
+    appVersion: appversion,
+    userID,
+    idToken,
+  } = await apiDefault();
+
+  if (!userID) return [];
+
+  const res = await fetch(`${apiHost}api/v3/users/${userID}/applications`, {
+    method: 'GET',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${idToken}`,
+      appclient: 'organized',
+      appversion,
+    },
+  });
+
+  if (res.ok && res.status === 200) {
+    const data = await res.json();
+
+    return data;
+  }
+
+  if (res.status !== 200) {
+    const data = await res.json();
+
+    throw new Error(data.message);
+  }
+};

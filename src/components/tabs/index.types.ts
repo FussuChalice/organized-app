@@ -1,5 +1,5 @@
-import { ReactElement } from 'react';
-import { TabOwnProps } from '@mui/material';
+import { ReactElement, ReactNode } from 'react';
+import { SxProps, TabOwnProps, TabsOwnProps, Theme } from '@mui/material';
 
 /**
  * Props for the TabsPanel component.
@@ -8,7 +8,7 @@ export type TabsPanelProps = {
   /**
    * The content of the tab panel.
    */
-  children?: React.ReactNode;
+  children?: ReactNode;
 
   /**
    * The index of the tab panel.
@@ -18,7 +18,7 @@ export type TabsPanelProps = {
   /**
    * The current value of the tab.
    */
-  value: number;
+  value: number | boolean;
 };
 
 /**
@@ -32,23 +32,25 @@ export interface CustomTabProps extends TabOwnProps {
     /**
      * The label of the tab.
      */
-    label: string | React.ReactNode;
+    label: string | ReactNode;
 
     /**
      * The component to be rendered in the tab.
      */
-    Component: React.ReactNode;
+    Component?: ReactNode;
 
     /**
      * The icon element to be displayed with the tab.
      */
     icon?: ReactElement;
+
+    className?: string;
   }[];
 
   /**
    * The index of the currently selected tab.
    */
-  value?: number;
+  value?: number | boolean;
 
   /**
    * A boolean indicating whether to display the indicator.
@@ -56,4 +58,12 @@ export interface CustomTabProps extends TabOwnProps {
   indicatorMode?: boolean;
 
   onChange?: (activeTab: number) => void;
+
+  className?: string;
+
+  variant?: TabsOwnProps['variant'];
+
+  minHeight?: string;
+
+  sx?: SxProps<Theme>;
 }

@@ -3,7 +3,7 @@ import { SessionResponseType } from '@definition/api';
 import {
   ProfileItemContainer,
   SettingWithBorderContainer,
-} from '../my_profile.styles';
+} from '../index.styles';
 import { useAppTranslation } from '@hooks/index';
 import useSessions from './useSessions';
 import Typography from '@components/typography';
@@ -13,7 +13,7 @@ import WaitingCircular from '@components/waiting_circular';
 const UserSessions = () => {
   const { t } = useAppTranslation();
 
-  const { sessions, errorMsg, isLoading } = useSessions();
+  const { sessions, errorMsg, isLoading, handleTerminate } = useSessions();
 
   return (
     <ProfileItemContainer>
@@ -33,7 +33,11 @@ const UserSessions = () => {
       {!isLoading && sessions.length > 0 && (
         <SettingWithBorderContainer>
           {sessions.map((session: SessionResponseType) => (
-            <SessionItem key={session.identifier} session={session} />
+            <SessionItem
+              key={session.identifier}
+              session={session}
+              onTerminate={handleTerminate}
+            />
           ))}
         </SettingWithBorderContainer>
       )}

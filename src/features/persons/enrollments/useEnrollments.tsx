@@ -3,6 +3,7 @@ import { useRecoilValue } from 'recoil';
 import { personCurrentDetailsState } from '@states/persons';
 import { setPersonCurrentDetails } from '@services/recoil/persons';
 import { EnrollmentType } from '@definition/person';
+import { formatDate } from '@services/dateformat';
 
 const useEnrollments = () => {
   const { id } = useParams();
@@ -11,7 +12,7 @@ const useEnrollments = () => {
   const person = useRecoilValue(personCurrentDetailsState);
 
   const activeHistory = person.person_data.enrollments.filter(
-    (record) => record._deleted.value === false
+    (record) => record._deleted === false
   );
 
   const handleAddHistory = async () => {
@@ -19,13 +20,11 @@ const useEnrollments = () => {
 
     newPerson.person_data.enrollments.push({
       id: crypto.randomUUID(),
-      enrollment: { value: 'AP', updatedAt: new Date().toISOString() },
-      start_date: {
-        value: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-      end_date: { value: null, updatedAt: new Date().toISOString() },
-      _deleted: { value: false, updatedAt: '' },
+      _deleted: false,
+      updatedAt: new Date().toISOString(),
+      enrollment: 'AP',
+      start_date: formatDate(new Date(), 'yyyy/MM/dd'),
+      end_date: null,
     });
 
     await setPersonCurrentDetails(newPerson);
@@ -38,7 +37,9 @@ const useEnrollments = () => {
       const current = newPerson.person_data.enrollments.find(
         (history) => history.id === id
       );
-      current._deleted = { value: true, updatedAt: new Date().toISOString() };
+
+      current._deleted = true;
+      current.updatedAt = new Date().toISOString();
     }
 
     if (isAddPerson) {
@@ -50,15 +51,16 @@ const useEnrollments = () => {
   };
 
   const handleStartDateChange = async (id: string, value: Date) => {
+    if (value === null) return;
+
     const newPerson = structuredClone(person);
 
     const current = newPerson.person_data.enrollments.find(
       (history) => history.id === id
     );
-    current.start_date = {
-      value: value.toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+
+    current.start_date = formatDate(value, 'yyyy/MM/dd');
+    current.updatedAt = new Date().toISOString();
 
     await setPersonCurrentDetails(newPerson);
   };
@@ -69,10 +71,9 @@ const useEnrollments = () => {
     const current = newPerson.person_data.enrollments.find(
       (history) => history.id === id
     );
-    current.end_date = {
-      value: value === null ? null : value.toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+
+    current.end_date = value === null ? null : formatDate(value, 'yyyy/MM/dd');
+    current.updatedAt = new Date().toISOString();
 
     await setPersonCurrentDetails(newPerson);
   };
@@ -85,10 +86,9 @@ const useEnrollments = () => {
     const current = newPerson.person_data.enrollments.find(
       (history) => history.id === id
     );
-    current.enrollment = {
-      value: newValue,
-      updatedAt: new Date().toISOString(),
-    };
+
+    current.enrollment = newValue;
+    current.updatedAt = new Date().toISOString();
 
     await setPersonCurrentDetails(newPerson);
   };

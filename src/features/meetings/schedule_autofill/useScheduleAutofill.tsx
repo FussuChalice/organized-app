@@ -7,7 +7,9 @@ import { assignmentsHistoryState, schedulesState } from '@states/schedules';
 import { PersonType } from '@definition/person';
 import { AssignmentCode, AssignmentFieldType } from '@definition/assignment';
 import {
+  midweekMeetingAuxCounselorDefaultEnabledState,
   midweekMeetingClassCountState,
+  midweekMeetingClosingPrayerAutoAssign,
   midweekMeetingOpeningPrayerAutoAssign,
   userDataViewState,
   weekendMeetingOpeningPrayerAutoAssignState,
@@ -49,8 +51,14 @@ const useScheduleAutofill = (
   const mmOpenPrayerAuto = useRecoilValue(
     midweekMeetingOpeningPrayerAutoAssign
   );
+  const mmClosingPrayerAuto = useRecoilValue(
+    midweekMeetingClosingPrayerAutoAssign
+  );
   const wmOpenPrayerAuto = useRecoilValue(
     weekendMeetingOpeningPrayerAutoAssignState
+  );
+  const mmDefaultAuxCounselorEnabled = useRecoilValue(
+    midweekMeetingAuxCounselorDefaultEnabledState
   );
 
   const [startWeek, setStartWeek] = useState('');
@@ -78,7 +86,7 @@ const useScheduleAutofill = (
 
       const noMeeting =
         weekType === Week.ASSEMBLY ||
-        weekType == Week.CONVENTION ||
+        weekType === Week.CONVENTION ||
         weekType === Week.MEMORIAL ||
         weekType === Week.NO_MEETING;
 
@@ -105,12 +113,12 @@ const useScheduleAutofill = (
         }
 
         // Aux Class
-        if (classCount === 2) {
+        if (classCount === 2 && !mmDefaultAuxCounselorEnabled) {
           main = schedule.midweek_meeting.chairman.aux_class_1.value;
 
           if (weekType === Week.NORMAL && main.length === 0) {
             selected = await schedulesSelectRandomPerson({
-              type: AssignmentCode.MM_Chairman,
+              type: AssignmentCode.MM_AuxiliaryCounselor,
               week: schedule.weekOf,
               history: historyAutofill,
             });
@@ -136,7 +144,7 @@ const useScheduleAutofill = (
 
       const noMeeting =
         weekType === Week.ASSEMBLY ||
-        weekType == Week.CONVENTION ||
+        weekType === Week.CONVENTION ||
         weekType === Week.MEMORIAL ||
         weekType === Week.NO_MEETING;
 
@@ -172,7 +180,7 @@ const useScheduleAutofill = (
 
       const noMeeting =
         weekType === Week.ASSEMBLY ||
-        weekType == Week.CONVENTION ||
+        weekType === Week.CONVENTION ||
         weekType === Week.MEMORIAL ||
         weekType === Week.NO_MEETING;
 
@@ -398,23 +406,25 @@ const useScheduleAutofill = (
         }
 
         // Assign Closing Prayer
-        main =
-          schedule.midweek_meeting.closing_prayer.find(
-            (record) => record.type === dataView
-          )?.value || '';
-        if (main.length === 0) {
-          selected = await schedulesSelectRandomPerson({
-            type: AssignmentCode.MM_Prayer,
-            week: schedule.weekOf,
-            history: historyAutofill,
-          });
-          if (selected) {
-            await schedulesAutofillSaveAssignment({
-              assignment: 'MM_ClosingPrayer',
+        if (!mmClosingPrayerAuto) {
+          main =
+            schedule.midweek_meeting.closing_prayer.find(
+              (record) => record.type === dataView
+            )?.value || '';
+          if (main.length === 0) {
+            selected = await schedulesSelectRandomPerson({
+              type: AssignmentCode.MM_Prayer,
+              week: schedule.weekOf,
               history: historyAutofill,
-              schedule,
-              value: selected,
             });
+            if (selected) {
+              await schedulesAutofillSaveAssignment({
+                assignment: 'MM_ClosingPrayer',
+                history: historyAutofill,
+                schedule,
+                value: selected,
+              });
+            }
           }
         }
 
@@ -607,7 +617,7 @@ const useScheduleAutofill = (
             if (classCount === 2) {
               if (
                 validTypes.includes(type) ||
-                (type === AssignmentCode.MM_ExplainingBeliefs && isTalk)
+                (type === AssignmentCode.MM_ExplainingBeliefs && !isTalk)
               ) {
                 const mainStudent = ayfPart.aux_class_1.student.value;
 
@@ -669,7 +679,7 @@ const useScheduleAutofill = (
 
       const noMeeting =
         weekType === Week.ASSEMBLY ||
-        weekType == Week.CONVENTION ||
+        weekType === Week.CONVENTION ||
         weekType === Week.MEMORIAL ||
         weekType === Week.NO_MEETING;
 
@@ -708,6 +718,7 @@ const useScheduleAutofill = (
             // #region Speaker 2
             if (selected) {
               const speaker1 = persons.find(
+                // eslint-disable-next-line no-loop-func
                 (record) => record.person_uid === selected.person_uid
               );
               const speakerSymposium = speaker1.person_data.assignments.find(
@@ -757,7 +768,7 @@ const useScheduleAutofill = (
 
       const noMeeting =
         weekType === Week.ASSEMBLY ||
-        weekType == Week.CONVENTION ||
+        weekType === Week.CONVENTION ||
         weekType === Week.MEMORIAL ||
         weekType === Week.NO_MEETING;
 

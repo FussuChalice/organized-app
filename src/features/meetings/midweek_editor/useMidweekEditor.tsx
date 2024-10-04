@@ -6,6 +6,8 @@ import { useAppTranslation } from '@hooks/index';
 import { sourcesState } from '@states/sources';
 import {
   midweekMeetingClassCountState,
+  midweekMeetingClosingPrayerAutoAssign,
+  midweekMeetingOpeningPrayerAutoAssign,
   userDataViewState,
 } from '@states/settings';
 import { AssignmentCode } from '@definition/assignment';
@@ -26,6 +28,12 @@ const useMidweekEditor = () => {
   const dataView = useRecoilValue(userDataViewState);
   const classCount = useRecoilValue(midweekMeetingClassCountState);
   const schedules = useRecoilValue(schedulesState);
+  const openingPrayerAuto = useRecoilValue(
+    midweekMeetingOpeningPrayerAutoAssign
+  );
+  const closingPrayerAuto = useRecoilValue(
+    midweekMeetingClosingPrayerAutoAssign
+  );
 
   const [isEdit, setIsEdit] = useState(false);
 
@@ -33,10 +41,10 @@ const useMidweekEditor = () => {
   const [hasSource, setHasSource] = useState(false);
   const [weekType, setWeekType] = useState(Week.NORMAL);
   const [ayfCount, setAyfCount] = useState(1);
-  const [ayfPart1, setAyfPart1] = useState(null);
-  const [ayfPart2, setAyfPart2] = useState(null);
-  const [ayfPart3, setAyfPart3] = useState(null);
-  const [ayfPart4, setAyfPart4] = useState(null);
+  const [ayfPart1, setAyfPart1] = useState<AssignmentCode>(null);
+  const [ayfPart2, setAyfPart2] = useState<AssignmentCode>(null);
+  const [ayfPart3, setAyfPart3] = useState<AssignmentCode>(null);
+  const [ayfPart4, setAyfPart4] = useState<AssignmentCode>(null);
   const [isTalkAYFPart1, setIsTalkAYFPart1] = useState(false);
   const [isTalkAYFPart2, setIsTalkAYFPart2] = useState(false);
   const [isTalkAYFPart3, setIsTalkAYFPart3] = useState(false);
@@ -62,11 +70,17 @@ const useMidweekEditor = () => {
       ayfPart1 !== AssignmentCode.MM_Discussion) ||
     (ayfPart1 === AssignmentCode.MM_ExplainingBeliefs && !isTalkAYFPart1);
 
+  const showAYFPart1DoublePerson =
+    showDoublePerson && ayfPart1 !== AssignmentCode.MM_Discussion;
+
   const showAYFPart2Assistant =
     (ayfPart2 !== AssignmentCode.MM_ExplainingBeliefs &&
       ayfPart2 !== AssignmentCode.MM_Talk &&
       ayfPart2 !== AssignmentCode.MM_Discussion) ||
     (ayfPart2 === AssignmentCode.MM_ExplainingBeliefs && !isTalkAYFPart2);
+
+  const showAYFPart2DoublePerson =
+    showDoublePerson && ayfPart2 !== AssignmentCode.MM_Discussion;
 
   const showAYFPart3Assistant =
     (ayfPart3 !== AssignmentCode.MM_ExplainingBeliefs &&
@@ -74,11 +88,17 @@ const useMidweekEditor = () => {
       ayfPart3 !== AssignmentCode.MM_Discussion) ||
     (ayfPart3 === AssignmentCode.MM_ExplainingBeliefs && !isTalkAYFPart3);
 
+  const showAYFPart3DoublePerson =
+    showDoublePerson && ayfPart3 !== AssignmentCode.MM_Discussion;
+
   const showAYFPart4Assistant =
     (ayfPart4 !== AssignmentCode.MM_ExplainingBeliefs &&
       ayfPart4 !== AssignmentCode.MM_Talk &&
       ayfPart4 !== AssignmentCode.MM_Discussion) ||
     (ayfPart4 === AssignmentCode.MM_ExplainingBeliefs && !isTalkAYFPart4);
+
+  const showAYFPart4DoublePerson =
+    showDoublePerson && ayfPart4 !== AssignmentCode.MM_Discussion;
 
   const handleEditAssignments = () => setIsEdit(false);
 
@@ -463,6 +483,12 @@ const useMidweekEditor = () => {
     clearAll,
     handleOpenClearAll,
     handleCloseClearAll,
+    openingPrayerAuto,
+    closingPrayerAuto,
+    showAYFPart1DoublePerson,
+    showAYFPart2DoublePerson,
+    showAYFPart3DoublePerson,
+    showAYFPart4DoublePerson,
   };
 };
 

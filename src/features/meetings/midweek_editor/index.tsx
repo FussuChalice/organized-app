@@ -11,10 +11,13 @@ import {
 import { AssignmentCode } from '@definition/assignment';
 import { Week } from '@definition/week_type';
 import {
+  DoubleFieldContainer,
+  PrimaryFieldContainer,
+  SecondaryFieldContainer,
+} from '../shared_styles';
+import {
   ClassAssignmentContainer,
   PersonDoubleContainer,
-  PersonSelectorContainer,
-  RowContainer,
 } from './index.styles';
 import { useAppTranslation, useBreakpoints } from '@hooks/index';
 import useMidweekEditor from './useMidweekEditor';
@@ -78,6 +81,12 @@ const MidweekEditor = () => {
     clearAll,
     handleCloseClearAll,
     handleOpenClearAll,
+    closingPrayerAuto,
+    openingPrayerAuto,
+    showAYFPart1DoublePerson,
+    showAYFPart2DoublePerson,
+    showAYFPart3DoublePerson,
+    showAYFPart4DoublePerson,
   } = useMidweekEditor();
 
   return (
@@ -109,21 +118,19 @@ const MidweekEditor = () => {
       )}
 
       {weekDateLocale.length > 0 && (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <Box
+          sx={{
+            width: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px',
+          }}
+        >
           <Typography className="h2">{weekDateLocale}</Typography>
 
-          <Box
-            sx={{
-              display: 'flex',
-              gap: '16px',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              justifyContent: 'space-between',
-              flexDirection: laptopUp ? 'row' : 'column',
-            }}
-          >
-            <Box
-              sx={{ flex: 1, alignSelf: laptopUp ? 'center' : 'flex-start' }}
+          <DoubleFieldContainer laptopUp={laptopUp}>
+            <PrimaryFieldContainer
+              sx={{ alignSelf: laptopUp ? 'center' : 'flex-start' }}
             >
               <ButtonGroup
                 buttons={[
@@ -139,11 +146,11 @@ const MidweekEditor = () => {
                   },
                 ]}
               />
-            </Box>
-            <Box sx={{ minWidth: laptopUp ? '350px' : '100%' }}>
+            </PrimaryFieldContainer>
+            <SecondaryFieldContainer laptopUp={laptopUp}>
               <WeekTypeSelector week={selectedWeek} meeting="midweek" />
-            </Box>
-          </Box>
+            </SecondaryFieldContainer>
+          </DoubleFieldContainer>
 
           <Divider color="var(--accent-200)" />
 
@@ -157,17 +164,33 @@ const MidweekEditor = () => {
           )}
 
           {hasSource && (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <Box
+              sx={{
+                width: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '16px',
+              }}
+            >
               {weekType !== Week.NORMAL && weekType !== Week.CO_VISIT && (
                 <EventEditor meeting="midweek" week={selectedWeek} />
               )}
 
               {(weekType === Week.NORMAL || weekType === Week.CO_VISIT) && (
                 <>
-                  <RowContainer desktopUp={desktopUp}>
-                    <WeekHeader week={selectedWeek} />
-
-                    <PersonSelectorContainer desktopUp={desktopUp}>
+                  <DoubleFieldContainer
+                    laptopUp={laptopUp}
+                    sx={{
+                      alignItems:
+                        desktopUp && !showDoublePerson
+                          ? 'center'
+                          : 'flex-start',
+                    }}
+                  >
+                    <PrimaryFieldContainer>
+                      <WeekHeader week={selectedWeek} />
+                    </PrimaryFieldContainer>
+                    <SecondaryFieldContainer laptopUp={laptopUp}>
                       <PersonSelector
                         week={selectedWeek}
                         label={t('tr_chairman')}
@@ -179,36 +202,39 @@ const MidweekEditor = () => {
                         <PersonSelector
                           week={selectedWeek}
                           label={t('tr_auxClassCounselor')}
-                          type={AssignmentCode.MM_Chairman}
+                          type={AssignmentCode.MM_AuxiliaryCounselor}
                           assignment="MM_Chairman_B"
                           readOnly={isEdit}
                         />
                       )}
-                    </PersonSelectorContainer>
-                  </RowContainer>
+                    </SecondaryFieldContainer>
+                  </DoubleFieldContainer>
 
                   <Divider color="var(--accent-200)" />
 
-                  <RowContainer
-                    desktopUp={desktopUp}
+                  <DoubleFieldContainer
+                    laptopUp={laptopUp}
                     sx={{ alignItems: desktopUp ? 'center' : 'flex-start' }}
                   >
-                    <SongSource
-                      week={selectedWeek}
-                      meeting="midweek"
-                      type="opening"
-                    />
-
-                    <PersonSelectorContainer desktopUp={desktopUp}>
-                      <PersonSelector
+                    <PrimaryFieldContainer>
+                      <SongSource
                         week={selectedWeek}
-                        label={t('tr_prayer')}
-                        type={AssignmentCode.MM_Prayer}
-                        assignment="MM_OpeningPrayer"
-                        readOnly={isEdit}
+                        meeting="midweek"
+                        type="opening"
                       />
-                    </PersonSelectorContainer>
-                  </RowContainer>
+                    </PrimaryFieldContainer>
+                    <SecondaryFieldContainer laptopUp={laptopUp}>
+                      {!openingPrayerAuto && (
+                        <PersonSelector
+                          week={selectedWeek}
+                          label={t('tr_prayer')}
+                          type={AssignmentCode.MM_Prayer}
+                          assignment="MM_OpeningPrayer"
+                          readOnly={isEdit}
+                        />
+                      )}
+                    </SecondaryFieldContainer>
+                  </DoubleFieldContainer>
 
                   <MeetingSection
                     part={t('tr_treasuresPart')}
@@ -218,8 +244,8 @@ const MidweekEditor = () => {
                     onToggle={handleToggleTGW}
                   >
                     {/* tgw_talk */}
-                    <RowContainer desktopUp={desktopUp}>
-                      <Box
+                    <DoubleFieldContainer laptopUp={laptopUp}>
+                      <PrimaryFieldContainer
                         sx={{
                           width: '100%',
                           display: 'flex',
@@ -241,9 +267,8 @@ const MidweekEditor = () => {
                           type="tgw_talk"
                           color="var(--treasures-from-gods-word)"
                         />
-                      </Box>
-
-                      <PersonSelectorContainer desktopUp={desktopUp}>
+                      </PrimaryFieldContainer>
+                      <SecondaryFieldContainer laptopUp={laptopUp}>
                         <PersonSelector
                           week={selectedWeek}
                           label={t('tr_brother')}
@@ -251,14 +276,14 @@ const MidweekEditor = () => {
                           assignment="MM_TGWTalk"
                           readOnly={isEdit}
                         />
-                      </PersonSelectorContainer>
-                    </RowContainer>
+                      </SecondaryFieldContainer>
+                    </DoubleFieldContainer>
 
                     <Divider color="var(--accent-200)" />
 
                     {/* tgw_gems */}
-                    <RowContainer desktopUp={desktopUp}>
-                      <Box
+                    <DoubleFieldContainer laptopUp={laptopUp}>
+                      <PrimaryFieldContainer
                         sx={{
                           width: '100%',
                           display: 'flex',
@@ -280,9 +305,8 @@ const MidweekEditor = () => {
                           type="tgw_gems"
                           color="var(--treasures-from-gods-word)"
                         />
-                      </Box>
-
-                      <PersonSelectorContainer desktopUp={desktopUp}>
+                      </PrimaryFieldContainer>
+                      <SecondaryFieldContainer laptopUp={laptopUp}>
                         <PersonSelector
                           week={selectedWeek}
                           label={t('tr_brother')}
@@ -290,20 +314,21 @@ const MidweekEditor = () => {
                           assignment="MM_TGWGems"
                           readOnly={isEdit}
                         />
-                      </PersonSelectorContainer>
-                    </RowContainer>
+                      </SecondaryFieldContainer>
+                    </DoubleFieldContainer>
 
                     <Divider color="var(--accent-200)" />
 
                     {/* tgw_bible_reading */}
-                    <RowContainer desktopUp={desktopUp}>
-                      <MeetingPart
-                        week={selectedWeek}
-                        type="tgw_bible_reading"
-                        color="var(--treasures-from-gods-word)"
-                      />
-
-                      <PersonSelectorContainer desktopUp={desktopUp}>
+                    <DoubleFieldContainer laptopUp={laptopUp}>
+                      <PrimaryFieldContainer>
+                        <MeetingPart
+                          week={selectedWeek}
+                          type="tgw_bible_reading"
+                          color="var(--treasures-from-gods-word)"
+                        />
+                      </PrimaryFieldContainer>
+                      <SecondaryFieldContainer laptopUp={laptopUp}>
                         <ClassAssignmentContainer>
                           <Typography
                             className="body-small-semibold"
@@ -338,8 +363,8 @@ const MidweekEditor = () => {
                             />
                           </ClassAssignmentContainer>
                         )}
-                      </PersonSelectorContainer>
-                    </RowContainer>
+                      </SecondaryFieldContainer>
+                    </DoubleFieldContainer>
                   </MeetingSection>
 
                   <MeetingSection
@@ -350,28 +375,33 @@ const MidweekEditor = () => {
                     onToggle={handleToggleAYF}
                   >
                     {/* ayf_part1 */}
-                    <RowContainer desktopUp={desktopUp}>
-                      <MeetingPart
-                        week={selectedWeek}
-                        type="ayf_part1"
-                        color="var(--apply-yourself-to-the-field-ministry)"
-                      />
-
-                      <PersonSelectorContainer desktopUp={desktopUp}>
+                    <DoubleFieldContainer laptopUp={laptopUp}>
+                      <PrimaryFieldContainer>
+                        <MeetingPart
+                          week={selectedWeek}
+                          type="ayf_part1"
+                          color="var(--apply-yourself-to-the-field-ministry)"
+                        />
+                      </PrimaryFieldContainer>
+                      <SecondaryFieldContainer laptopUp={laptopUp}>
                         <ClassAssignmentContainer>
-                          <Typography
-                            className="body-small-semibold"
-                            color="var(--grey-350)"
-                          >
-                            {t('tr_mainHall')}
-                          </Typography>
-                          <PersonDoubleContainer
-                            desktopUp={desktopUp}
-                            laptopUp={laptopUp}
-                          >
+                          {ayfPart1 !== AssignmentCode.MM_Discussion && (
+                            <Typography
+                              className="body-small-semibold"
+                              color="var(--grey-350)"
+                            >
+                              {t('tr_mainHall')}
+                            </Typography>
+                          )}
+
+                          <PersonDoubleContainer>
                             <PersonSelector
                               week={selectedWeek}
-                              label={t('tr_student')}
+                              label={
+                                ayfPart1 === AssignmentCode.MM_Discussion
+                                  ? t('tr_brother')
+                                  : t('tr_student')
+                              }
                               type={ayfPart1}
                               assignment="MM_AYFPart1_Student_A"
                               readOnly={isEdit}
@@ -389,7 +419,7 @@ const MidweekEditor = () => {
                           </PersonDoubleContainer>
                         </ClassAssignmentContainer>
 
-                        {showDoublePerson && (
+                        {showAYFPart1DoublePerson && (
                           <ClassAssignmentContainer>
                             <Typography
                               className="body-small-semibold"
@@ -397,10 +427,7 @@ const MidweekEditor = () => {
                             >
                               {t('tr_auxClass')}
                             </Typography>
-                            <PersonDoubleContainer
-                              desktopUp={desktopUp}
-                              laptopUp={laptopUp}
-                            >
+                            <PersonDoubleContainer>
                               <PersonSelector
                                 week={selectedWeek}
                                 label={t('tr_student')}
@@ -421,36 +448,40 @@ const MidweekEditor = () => {
                             </PersonDoubleContainer>
                           </ClassAssignmentContainer>
                         )}
-                      </PersonSelectorContainer>
-                    </RowContainer>
+                      </SecondaryFieldContainer>
+                    </DoubleFieldContainer>
 
                     {/* ayf_part2 */}
                     {ayfCount > 1 && (
                       <>
                         <Divider color="var(--accent-200)" />
 
-                        <RowContainer desktopUp={desktopUp}>
-                          <MeetingPart
-                            week={selectedWeek}
-                            type="ayf_part2"
-                            color="var(--apply-yourself-to-the-field-ministry)"
-                          />
-
-                          <PersonSelectorContainer desktopUp={desktopUp}>
+                        <DoubleFieldContainer laptopUp={laptopUp}>
+                          <PrimaryFieldContainer>
+                            <MeetingPart
+                              week={selectedWeek}
+                              type="ayf_part2"
+                              color="var(--apply-yourself-to-the-field-ministry)"
+                            />
+                          </PrimaryFieldContainer>
+                          <SecondaryFieldContainer laptopUp={laptopUp}>
                             <ClassAssignmentContainer>
-                              <Typography
-                                className="body-small-semibold"
-                                color="var(--grey-350)"
-                              >
-                                {t('tr_mainHall')}
-                              </Typography>
-                              <PersonDoubleContainer
-                                desktopUp={desktopUp}
-                                laptopUp={laptopUp}
-                              >
+                              {ayfPart2 !== AssignmentCode.MM_Discussion && (
+                                <Typography
+                                  className="body-small-semibold"
+                                  color="var(--grey-350)"
+                                >
+                                  {t('tr_mainHall')}
+                                </Typography>
+                              )}
+                              <PersonDoubleContainer>
                                 <PersonSelector
                                   week={selectedWeek}
-                                  label={t('tr_student')}
+                                  label={
+                                    ayfPart2 === AssignmentCode.MM_Discussion
+                                      ? t('tr_brother')
+                                      : t('tr_student')
+                                  }
                                   type={ayfPart2}
                                   assignment="MM_AYFPart2_Student_A"
                                   readOnly={isEdit}
@@ -468,7 +499,7 @@ const MidweekEditor = () => {
                               </PersonDoubleContainer>
                             </ClassAssignmentContainer>
 
-                            {showDoublePerson && (
+                            {showAYFPart2DoublePerson && (
                               <ClassAssignmentContainer>
                                 <Typography
                                   className="body-small-semibold"
@@ -476,10 +507,7 @@ const MidweekEditor = () => {
                                 >
                                   {t('tr_auxClass')}
                                 </Typography>
-                                <PersonDoubleContainer
-                                  desktopUp={desktopUp}
-                                  laptopUp={laptopUp}
-                                >
+                                <PersonDoubleContainer>
                                   <PersonSelector
                                     week={selectedWeek}
                                     label={t('tr_student')}
@@ -500,8 +528,8 @@ const MidweekEditor = () => {
                                 </PersonDoubleContainer>
                               </ClassAssignmentContainer>
                             )}
-                          </PersonSelectorContainer>
-                        </RowContainer>
+                          </SecondaryFieldContainer>
+                        </DoubleFieldContainer>
                       </>
                     )}
 
@@ -510,14 +538,15 @@ const MidweekEditor = () => {
                       <>
                         <Divider color="var(--accent-200)" />
 
-                        <RowContainer desktopUp={desktopUp}>
-                          <MeetingPart
-                            week={selectedWeek}
-                            type="ayf_part3"
-                            color="var(--apply-yourself-to-the-field-ministry)"
-                          />
-
-                          <PersonSelectorContainer desktopUp={desktopUp}>
+                        <DoubleFieldContainer laptopUp={laptopUp}>
+                          <PrimaryFieldContainer>
+                            <MeetingPart
+                              week={selectedWeek}
+                              type="ayf_part3"
+                              color="var(--apply-yourself-to-the-field-ministry)"
+                            />
+                          </PrimaryFieldContainer>
+                          <SecondaryFieldContainer laptopUp={laptopUp}>
                             <ClassAssignmentContainer>
                               <Typography
                                 className="body-small-semibold"
@@ -525,10 +554,7 @@ const MidweekEditor = () => {
                               >
                                 {t('tr_mainHall')}
                               </Typography>
-                              <PersonDoubleContainer
-                                desktopUp={desktopUp}
-                                laptopUp={laptopUp}
-                              >
+                              <PersonDoubleContainer>
                                 <PersonSelector
                                   week={selectedWeek}
                                   label={t('tr_student')}
@@ -549,7 +575,7 @@ const MidweekEditor = () => {
                               </PersonDoubleContainer>
                             </ClassAssignmentContainer>
 
-                            {showDoublePerson && (
+                            {showAYFPart3DoublePerson && (
                               <ClassAssignmentContainer>
                                 <Typography
                                   className="body-small-semibold"
@@ -557,10 +583,7 @@ const MidweekEditor = () => {
                                 >
                                   {t('tr_auxClass')}
                                 </Typography>
-                                <PersonDoubleContainer
-                                  desktopUp={desktopUp}
-                                  laptopUp={laptopUp}
-                                >
+                                <PersonDoubleContainer>
                                   <PersonSelector
                                     week={selectedWeek}
                                     label={t('tr_student')}
@@ -581,8 +604,8 @@ const MidweekEditor = () => {
                                 </PersonDoubleContainer>
                               </ClassAssignmentContainer>
                             )}
-                          </PersonSelectorContainer>
-                        </RowContainer>
+                          </SecondaryFieldContainer>
+                        </DoubleFieldContainer>
                       </>
                     )}
 
@@ -591,25 +614,23 @@ const MidweekEditor = () => {
                       <>
                         <Divider color="var(--accent-200)" />
 
-                        <RowContainer desktopUp={desktopUp}>
-                          <MeetingPart
-                            week={selectedWeek}
-                            type="ayf_part4"
-                            color="var(--apply-yourself-to-the-field-ministry)"
-                          />
-
-                          <PersonSelectorContainer desktopUp={desktopUp}>
+                        <DoubleFieldContainer laptopUp={laptopUp}>
+                          <PrimaryFieldContainer>
+                            <MeetingPart
+                              week={selectedWeek}
+                              type="ayf_part4"
+                              color="var(--apply-yourself-to-the-field-ministry)"
+                            />
+                          </PrimaryFieldContainer>
+                          <SecondaryFieldContainer laptopUp={laptopUp}>
                             <ClassAssignmentContainer>
                               <Typography
                                 className="body-small-semibold"
-                                color="var(--grey-450)"
+                                color="var(--grey-350)"
                               >
                                 {t('tr_mainHall')}
                               </Typography>
-                              <PersonDoubleContainer
-                                desktopUp={desktopUp}
-                                laptopUp={laptopUp}
-                              >
+                              <PersonDoubleContainer>
                                 <PersonSelector
                                   week={selectedWeek}
                                   label={t('tr_student')}
@@ -630,18 +651,15 @@ const MidweekEditor = () => {
                               </PersonDoubleContainer>
                             </ClassAssignmentContainer>
 
-                            {showDoublePerson && (
+                            {showAYFPart4DoublePerson && (
                               <ClassAssignmentContainer>
                                 <Typography
                                   className="body-small-semibold"
-                                  color="var(--grey-450)"
+                                  color="var(--grey-350)"
                                 >
                                   {t('tr_auxClass')}
                                 </Typography>
-                                <PersonDoubleContainer
-                                  desktopUp={desktopUp}
-                                  laptopUp={laptopUp}
-                                >
+                                <PersonDoubleContainer>
                                   <PersonSelector
                                     week={selectedWeek}
                                     label={t('tr_student')}
@@ -662,8 +680,8 @@ const MidweekEditor = () => {
                                 </PersonDoubleContainer>
                               </ClassAssignmentContainer>
                             )}
-                          </PersonSelectorContainer>
-                        </RowContainer>
+                          </SecondaryFieldContainer>
+                        </DoubleFieldContainer>
                       </>
                     )}
                   </MeetingSection>
@@ -675,11 +693,16 @@ const MidweekEditor = () => {
                     expanded={openLC}
                     onToggle={handleToggleLC}
                   >
-                    <SongSource
-                      week={selectedWeek}
-                      meeting="midweek"
-                      type="middle"
-                    />
+                    <DoubleFieldContainer laptopUp={laptopUp}>
+                      <PrimaryFieldContainer>
+                        <SongSource
+                          week={selectedWeek}
+                          meeting="midweek"
+                          type="middle"
+                        />
+                      </PrimaryFieldContainer>
+                      <SecondaryFieldContainer laptopUp={laptopUp} />
+                    </DoubleFieldContainer>
 
                     <Divider color="var(--accent-200)" />
 
@@ -699,8 +722,8 @@ const MidweekEditor = () => {
                         />
                       )}
 
-                      <RowContainer desktopUp={desktopUp}>
-                        <Box
+                      <DoubleFieldContainer laptopUp={laptopUp}>
+                        <PrimaryFieldContainer
                           sx={{
                             width: '100%',
                             display: 'flex',
@@ -724,10 +747,9 @@ const MidweekEditor = () => {
                             isOverwrite={isOverwriteLCPart1}
                             isEdit={isEdit}
                           />
-                        </Box>
-
-                        {!lcNoAssignPart1 && (
-                          <PersonSelectorContainer desktopUp={desktopUp}>
+                        </PrimaryFieldContainer>
+                        <SecondaryFieldContainer laptopUp={laptopUp}>
+                          {!lcNoAssignPart1 && (
                             <PersonSelector
                               week={selectedWeek}
                               label={t('tr_brother')}
@@ -735,9 +757,9 @@ const MidweekEditor = () => {
                               assignment="MM_LCPart1"
                               readOnly={isEdit}
                             />
-                          </PersonSelectorContainer>
-                        )}
-                      </RowContainer>
+                          )}
+                        </SecondaryFieldContainer>
+                      </DoubleFieldContainer>
                     </Box>
 
                     {/* lc_part2 */}
@@ -760,8 +782,8 @@ const MidweekEditor = () => {
                             />
                           )}
 
-                          <RowContainer desktopUp={desktopUp}>
-                            <Box
+                          <DoubleFieldContainer laptopUp={laptopUp}>
+                            <PrimaryFieldContainer
                               sx={{
                                 width: '100%',
                                 display: 'flex',
@@ -784,10 +806,9 @@ const MidweekEditor = () => {
                                 color="var(--living-as-christians)"
                                 isOverwrite={isOverwriteLCPart2}
                               />
-                            </Box>
-
-                            {!lcNoAssignPart2 && (
-                              <PersonSelectorContainer desktopUp={desktopUp}>
+                            </PrimaryFieldContainer>
+                            <SecondaryFieldContainer laptopUp={laptopUp}>
+                              {!lcNoAssignPart2 && (
                                 <PersonSelector
                                   week={selectedWeek}
                                   label={t('tr_brother')}
@@ -795,9 +816,9 @@ const MidweekEditor = () => {
                                   assignment="MM_LCPart2"
                                   readOnly={isEdit}
                                 />
-                              </PersonSelectorContainer>
-                            )}
-                          </RowContainer>
+                              )}
+                            </SecondaryFieldContainer>
+                          </DoubleFieldContainer>
                         </Box>
                       </>
                     )}
@@ -811,11 +832,8 @@ const MidweekEditor = () => {
                           {t('tr_customMeetingPartDesc')}
                         </Typography>
 
-                        <RowContainer
-                          desktopUp={desktopUp}
-                          sx={{ alignItems: 'flex-start' }}
-                        >
-                          <Box
+                        <DoubleFieldContainer laptopUp={laptopUp}>
+                          <PrimaryFieldContainer
                             sx={{
                               width: '100%',
                               display: 'flex',
@@ -839,40 +857,39 @@ const MidweekEditor = () => {
                               isEdit={isEdit}
                               isOverwrite={true}
                             />
-                          </Box>
-
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              flexDirection: 'column',
-                              alignItems: 'flex-end',
-                              gap: '16px',
-                              width: desktopUp ? 'unset' : '100%',
-                            }}
-                          >
+                          </PrimaryFieldContainer>
+                          <SecondaryFieldContainer laptopUp={laptopUp}>
                             {!lcNoAssignPart3 && (
-                              <PersonSelectorContainer desktopUp={desktopUp}>
-                                <PersonSelector
-                                  week={selectedWeek}
-                                  label={t('tr_brother')}
-                                  type={AssignmentCode.MM_LCPart}
-                                  assignment="MM_LCPart3"
-                                  readOnly={isEdit}
-                                />
-                              </PersonSelectorContainer>
+                              <PersonSelector
+                                week={selectedWeek}
+                                label={t('tr_brother')}
+                                type={AssignmentCode.MM_LCPart}
+                                assignment="MM_LCPart3"
+                                readOnly={isEdit}
+                              />
                             )}
+                          </SecondaryFieldContainer>
+                        </DoubleFieldContainer>
 
-                            <Button
-                              variant="small"
-                              color="red"
-                              startIcon={<IconDelete />}
-                              sx={{ minHeight: '32px', width: 'fit-content' }}
-                              onClick={handleDeleteCustomLCPart}
-                            >
-                              {t('tr_customMeetingPartDelete')}
-                            </Button>
-                          </Box>
-                        </RowContainer>
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'flex-end',
+                            gap: '16px',
+                            width: desktopUp ? 'unset' : '100%',
+                          }}
+                        >
+                          <Button
+                            variant="small"
+                            color="red"
+                            startIcon={<IconDelete />}
+                            sx={{ minHeight: '32px', width: 'fit-content' }}
+                            onClick={handleDeleteCustomLCPart}
+                          >
+                            {t('tr_customMeetingPartDelete')}
+                          </Button>
+                        </Box>
                       </>
                     )}
 
@@ -897,11 +914,8 @@ const MidweekEditor = () => {
 
                     {/* lc_cbs */}
                     {weekType !== Week.CO_VISIT && (
-                      <RowContainer
-                        desktopUp={desktopUp}
-                        sx={{ alignItems: 'flex-start' }}
-                      >
-                        <Box
+                      <DoubleFieldContainer laptopUp={laptopUp}>
+                        <PrimaryFieldContainer
                           sx={{
                             width: '100%',
                             display: 'flex',
@@ -925,13 +939,9 @@ const MidweekEditor = () => {
                             isEdit={isEdit}
                             isOverwrite={isEdit}
                           />
-                        </Box>
-
-                        <PersonSelectorContainer desktopUp={desktopUp}>
-                          <PersonDoubleContainer
-                            desktopUp={desktopUp}
-                            laptopUp={laptopUp}
-                          >
+                        </PrimaryFieldContainer>
+                        <SecondaryFieldContainer laptopUp={laptopUp}>
+                          <PersonDoubleContainer>
                             <PersonSelector
                               week={selectedWeek}
                               label={t('tr_cbsConductor')}
@@ -947,8 +957,8 @@ const MidweekEditor = () => {
                               readOnly={isEdit}
                             />
                           </PersonDoubleContainer>
-                        </PersonSelectorContainer>
-                      </RowContainer>
+                        </SecondaryFieldContainer>
+                      </DoubleFieldContainer>
                     )}
 
                     {/* CO talk */}
@@ -960,24 +970,27 @@ const MidweekEditor = () => {
                   </MeetingSection>
 
                   {/* closing_prayer */}
-                  <RowContainer desktopUp={desktopUp}>
-                    <SongSource
-                      week={selectedWeek}
-                      meeting="midweek"
-                      type="concluding"
-                      isEdit={isEdit || weekType === Week.CO_VISIT}
-                    />
-
-                    <PersonSelectorContainer desktopUp={desktopUp}>
-                      <PersonSelector
+                  <DoubleFieldContainer laptopUp={laptopUp}>
+                    <PrimaryFieldContainer>
+                      <SongSource
                         week={selectedWeek}
-                        label={t('tr_prayer')}
-                        type={AssignmentCode.MM_Prayer}
-                        assignment="MM_ClosingPrayer"
-                        readOnly={isEdit}
+                        meeting="midweek"
+                        type="concluding"
+                        isEdit={isEdit || weekType === Week.CO_VISIT}
                       />
-                    </PersonSelectorContainer>
-                  </RowContainer>
+                    </PrimaryFieldContainer>
+                    <SecondaryFieldContainer laptopUp={laptopUp}>
+                      {!closingPrayerAuto && (
+                        <PersonSelector
+                          week={selectedWeek}
+                          label={t('tr_prayer')}
+                          type={AssignmentCode.MM_Prayer}
+                          assignment="MM_ClosingPrayer"
+                          readOnly={isEdit}
+                        />
+                      )}
+                    </SecondaryFieldContainer>
+                  </DoubleFieldContainer>
 
                   <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
                     <Button

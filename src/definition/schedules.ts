@@ -55,7 +55,6 @@ export type OutgoingTalkScheduleType = {
   opening_song: string;
   public_talk: number;
   speaker: string;
-  type: string;
   congregation: {
     name: string;
     number: string;
@@ -64,6 +63,12 @@ export type OutgoingTalkScheduleType = {
     weekday: number;
     time: string;
   };
+};
+
+export type OutgoingTalkExportScheduleType = OutgoingTalkScheduleType & {
+  sender: string;
+  recipient: string;
+  weekOf: string;
 };
 
 export type SchedWeekType = {
@@ -93,6 +98,7 @@ export type SchedWeekType = {
       reader: AssignmentCongregation[];
     };
     closing_prayer: AssignmentCongregation[];
+    circuit_overseer: AssignmentCongregation;
     week_type: WeekTypeCongregation[];
   };
   weekend_meeting: {
@@ -249,6 +255,15 @@ export type MidweekMeetingDataType = {
   lc_concluding_song: string;
   lc_concluding_prayer: string;
   co_name?: string;
+};
+
+export type WeekendMeetingTimingsType = {
+  pgm_start: string;
+  public_talk: string;
+  middle_song: string;
+  w_study: string;
+  service_talk?: string;
+  pgm_end: string;
 };
 
 export type WeekendMeetingDataType = {

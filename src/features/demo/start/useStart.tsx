@@ -1,5 +1,9 @@
 import { useEffect } from 'react';
 import {
+  dbBranchS1ReportsFill,
+  dbFieldGroupAutoAssign,
+  dbMeetingAttendanceFill,
+  dbReportsFillRandom,
   dbSettingsAssignMainWTStudyConductor,
   importDummyPersons,
 } from '@utils/dev';
@@ -9,29 +13,30 @@ import { setIsAppLoad } from '@services/recoil/app';
 import { loadApp, runUpdater } from '@services/app';
 import { dbSpeakersCongregationsDummy } from '@services/dexie/speakers_congregations';
 import { dbVisitingSpeakersDummy } from '@services/dexie/visiting_speakers';
-import { apiFetchSources } from '@services/api/sources';
-import { sourcesImportJW } from '@services/app/sources';
+import useInternetChecker from '@hooks/useInternetChecker';
 
 const useStart = () => {
+  const { isNavigatorOnline } = useInternetChecker();
+
   useEffect(() => {
     document.title = 'Test Organized app (sws2apps)';
 
     const handlePrepareTest = async () => {
       await dbAppDelete();
       await dbAppOpen();
+
       await importDummyPersons(false);
       await dbAppSettingsBuildTest();
       await dbSpeakersCongregationsDummy();
       await dbVisitingSpeakersDummy();
       await dbSettingsAssignMainWTStudyConductor();
+      await dbFieldGroupAutoAssign();
+      await dbReportsFillRandom();
+      await dbMeetingAttendanceFill();
+      await dbBranchS1ReportsFill();
 
       await loadApp();
       await runUpdater();
-
-      const { data, status } = await apiFetchSources();
-      if (status === 200 && data && data.length) {
-        await sourcesImportJW(data);
-      }
 
       await setIsAppLoad(false);
     };
@@ -41,7 +46,7 @@ const useStart = () => {
     return () => {
       clearTimeout(timeOut);
     };
-  }, []);
+  }, [isNavigatorOnline]);
 
   return {};
 };

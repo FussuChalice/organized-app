@@ -6,6 +6,8 @@ Individual property are evaluated using recoil selector
 import { atom, selector } from 'recoil';
 import { settingSchema } from '@services/dexie/schema';
 import { buildPersonFullname } from '@utils/common';
+import { formatDate } from '@services/dateformat';
+import { addMonths } from '@utils/date';
 
 export const settingsState = atom({
   key: 'settings',
@@ -28,6 +30,30 @@ export const congNameState = selector({
     const settings = get(settingsState);
 
     return settings.cong_settings.cong_name;
+  },
+});
+
+export const congFullnameState = selector({
+  key: 'congFullname',
+  get: ({ get }) => {
+    const congName = get(congNameState);
+    const congNumber = get(congNumberState);
+
+    return `${congName}, ${congNumber}`;
+  },
+});
+
+export const circuitNumberState = selector({
+  key: 'circuitNumber',
+  get: ({ get }) => {
+    const settings = get(settingsState);
+    const dataView = get(userDataViewState);
+
+    const circuit = settings.cong_settings.cong_circuit.find(
+      (record) => record.type === dataView
+    );
+
+    return circuit?.value || '';
   },
 });
 
@@ -80,8 +106,23 @@ export const fullnameOptionState = selector({
   key: 'fullnameOption',
   get: ({ get }) => {
     const settings = get(settingsState);
+    const dataView = get(userDataViewState);
 
-    return settings.cong_settings.fullname_option.value;
+    return settings.cong_settings.fullname_option.find(
+      (record) => record.type === dataView
+    ).value;
+  },
+});
+
+export const shortDateFormatState = selector({
+  key: 'shortDateFormat',
+  get: ({ get }) => {
+    const settings = get(settingsState);
+    const dataView = get(userDataViewState);
+
+    return settings.cong_settings.short_date_format.find(
+      (record) => record.type === dataView
+    ).value;
   },
 });
 
@@ -130,7 +171,7 @@ export const COScheduleNameState = selector({
   get: ({ get }) => {
     const fullname = get(COFullnameState);
     const displayName = get(CODisplayNameState);
-    const useDisplayName = get(displayNameEnableState);
+    const useDisplayName = get(displayNameMeetingsEnableState);
 
     const scheduleName = useDisplayName ? displayName : fullname;
 
@@ -143,14 +184,6 @@ export const adminRoleState = selector({
   get: ({ get }) => {
     const congRole = get(congRoleState);
     return congRole.includes('admin');
-  },
-});
-
-export const lmmoRoleState = selector({
-  key: 'lmmoRole',
-  get: ({ get }) => {
-    const congRole = get(congRoleState);
-    return congRole.includes('lmmo') || congRole.includes('lmmo-backup');
   },
 });
 
@@ -170,82 +203,11 @@ export const coordinatorRoleState = selector({
   },
 });
 
-export const publicTalkCoordinatorRoleState = selector({
-  key: 'publicTalkCoordinatorRole',
+export const pioneerRoleState = selector({
+  key: 'pioneerRole',
   get: ({ get }) => {
     const congRole = get(congRoleState);
-    return congRole.includes('public_talk_coordinator');
-  },
-});
-
-export const elderRoleState = selector({
-  key: 'elderRole',
-  get: ({ get }) => {
-    const congRole = get(congRoleState);
-    return congRole.includes('elder');
-  },
-});
-
-export const msRoleState = selector({
-  key: 'msRole',
-  get: ({ get }) => {
-    const congRole = get(congRoleState);
-    return congRole.includes('ms');
-  },
-});
-
-export const publisherRoleState = selector({
-  key: 'publisherRole',
-  get: ({ get }) => {
-    const congRole = get(congRoleState);
-    const elderRole = get(elderRoleState);
-    const msRole = get(msRoleState);
-
-    return congRole.includes('publisher') || msRole || elderRole;
-  },
-});
-
-export const elderLocalRoleState = selector({
-  key: 'elderLocalRole',
-  get: ({ get }) => {
-    const elderRole = get(elderRoleState);
-    const secretaryRole = get(secretaryRoleState);
-    const lmmoRole = get(lmmoRoleState);
-    const coordinatorRole = get(coordinatorRoleState);
-    const publicTalkCoordinatorRole = get(publicTalkCoordinatorRoleState);
-
-    return (
-      elderRole ||
-      secretaryRole ||
-      lmmoRole ||
-      coordinatorRole ||
-      publicTalkCoordinatorRole
-    );
-  },
-});
-
-export const personEditorRoleState = selector({
-  key: 'personEditorRole',
-  get: ({ get }) => {
-    const secretaryRole = get(secretaryRoleState);
-    const lmmoRole = get(lmmoRoleState);
-    const coordinatorRole = get(coordinatorRoleState);
-    const publicTalkCoordinatorRole = get(publicTalkCoordinatorRoleState);
-
-    return (
-      secretaryRole || lmmoRole || coordinatorRole || publicTalkCoordinatorRole
-    );
-  },
-});
-
-export const meetingEditorRoleState = selector({
-  key: 'meetingEditorRole',
-  get: ({ get }) => {
-    const lmmoRole = get(lmmoRoleState);
-    const coordinatorRole = get(coordinatorRoleState);
-    const publicTalkCoordinatorRole = get(publicTalkCoordinatorRoleState);
-
-    return lmmoRole || coordinatorRole || publicTalkCoordinatorRole;
+    return congRole.some((role) => role.includes('pioneer'));
   },
 });
 
@@ -258,12 +220,75 @@ export const congDiscoverableState = selector({
   },
 });
 
-export const displayNameEnableState = selector({
-  key: 'displayNameEnable',
+export const displayNameMeetingsEnableState = selector({
+  key: 'displayNameMeetingsEnable',
   get: ({ get }) => {
     const settings = get(settingsState);
 
-    return settings.cong_settings.display_name_enabled.value;
+    return settings.cong_settings.display_name_enabled.meetings.value;
+  },
+});
+
+export const sourcesJWAutoImportState = selector({
+  key: 'sourcesJWAutoImport',
+  get: ({ get }) => {
+    const settings = get(settingsState);
+
+    return settings.cong_settings.source_material_auto_import.enabled.value;
+  },
+});
+
+export const sourcesJWAutoImportFrequencyState = selector({
+  key: 'sourcesJWAutoImportFrequency',
+  get: ({ get }) => {
+    const settings = get(settingsState);
+
+    return settings.cong_settings.source_material_auto_import.frequency.value;
+  },
+});
+
+export const attendanceOnlineRecordState = selector({
+  key: 'attendanceOnlineRecord',
+  get: ({ get }) => {
+    const settings = get(settingsState);
+
+    return settings.cong_settings.attendance_online_record.value;
+  },
+});
+
+export const congAddressState = selector({
+  key: 'congAddress',
+  get: ({ get }) => {
+    const settings = get(settingsState);
+
+    return settings.cong_settings.cong_location.address;
+  },
+});
+
+export const congCountryState = selector({
+  key: 'congCountry',
+  get: ({ get }) => {
+    const settings = get(settingsState);
+
+    return settings.cong_settings.country_code;
+  },
+});
+
+export const congSpecialMonthsState = selector({
+  key: 'congSpecialMonths',
+  get: ({ get }) => {
+    const settings = get(settingsState);
+
+    const result = settings.cong_settings.special_months.filter((record) => {
+      if (record._deleted) return false;
+
+      const lastMonthDate = addMonths(new Date(), -1);
+      const date = formatDate(lastMonthDate, 'yyyy/MM/01');
+
+      return record.month_start >= date;
+    });
+
+    return result.sort((a, b) => a.month_start.localeCompare(b.month_start));
   },
 });
 
@@ -289,7 +314,7 @@ export const midweekMeetingWeekdayState = selector({
 
     return settings.cong_settings.midweek_meeting.find(
       (record) => record.type === dataView
-    ).weekday;
+    ).weekday.value;
   },
 });
 
@@ -301,7 +326,7 @@ export const midweekMeetingTimeState = selector({
 
     return settings.cong_settings.midweek_meeting.find(
       (record) => record.type === dataView
-    ).time;
+    ).time.value;
   },
 });
 
@@ -313,19 +338,56 @@ export const midweekMeetingOpeningPrayerAutoAssign = selector({
 
     return settings.cong_settings.midweek_meeting.find(
       (record) => record.type === dataView
-    ).opening_prayer_auto_assign.value;
+    ).opening_prayer_auto_assigned.value;
   },
 });
 
-export const midweekMeetingExactDateState = selector({
-  key: 'midweekMeetingExactDate',
+export const midweekMeetingClosingPrayerAutoAssign = selector({
+  key: 'closingPrayerMMAutoAssign',
   get: ({ get }) => {
     const settings = get(settingsState);
     const dataView = get(userDataViewState);
 
     return settings.cong_settings.midweek_meeting.find(
       (record) => record.type === dataView
-    ).schedule_exact_date_enabled.value;
+    ).closing_prayer_auto_assigned.value;
+  },
+});
+
+export const meetingExactDateState = selector({
+  key: 'meetingExactDate',
+  get: ({ get }) => {
+    const settings = get(settingsState);
+
+    return settings.cong_settings.schedule_exact_date_enabled.value;
+  },
+});
+
+export const midweekMeetingAuxCounselorDefaultEnabledState = selector({
+  key: 'midweekMeetingAuxCounselorDefaultEnabled',
+  get: ({ get }) => {
+    const settings = get(settingsState);
+    const dataView = get(userDataViewState);
+
+    return (
+      settings.cong_settings.midweek_meeting.find(
+        (record) => record.type === dataView
+      )?.aux_class_counselor_default.enabled.value ?? false
+    );
+  },
+});
+
+export const midweekMeetingAuxCounselorDefaultState = selector({
+  key: 'midweekMeetingAuxCounselorDefault',
+  get: ({ get }) => {
+    const settings = get(settingsState);
+    const dataView = get(userDataViewState);
+
+    return (
+      settings.cong_settings.midweek_meeting.find(
+        (record) => record.type === dataView
+      )?.aux_class_counselor_default.person.value || ''
+    );
   },
 });
 
@@ -351,7 +413,7 @@ export const weekendMeetingWeekdayState = selector({
 
     return settings.cong_settings.weekend_meeting.find(
       (record) => record.type === dataView
-    ).weekday;
+    ).weekday.value;
   },
 });
 
@@ -363,7 +425,7 @@ export const weekendMeetingSubstituteSpeakerState = selector({
 
     return settings.cong_settings.weekend_meeting.find(
       (record) => record.type === dataView
-    ).substitute_speaker_enabled;
+    ).substitute_speaker_enabled.value;
   },
 });
 
@@ -378,6 +440,32 @@ export const weekendMeetingWTStudyConductorDefaultState = selector({
         (record) => record.type === dataView
       )?.w_study_conductor_default.value || ''
     );
+  },
+});
+
+export const weekendMeetingShowMonthlyWarningState = selector({
+  key: 'weekendMeetingShowMonthlyWarning',
+  get: ({ get }) => {
+    const settings = get(settingsState);
+    const dataView = get(userDataViewState);
+
+    return (
+      settings.cong_settings.weekend_meeting.find(
+        (record) => record.type === dataView
+      )?.consecutive_monthly_parts_notice_shown.value ?? false
+    );
+  },
+});
+
+export const weekendMeetingTimeState = selector({
+  key: 'weekendMeetingTime',
+  get: ({ get }) => {
+    const settings = get(settingsState);
+    const dataView = get(userDataViewState);
+
+    return settings.cong_settings.weekend_meeting.find(
+      (record) => record.type === dataView
+    ).time.value;
   },
 });
 
@@ -508,14 +596,5 @@ export const hoursCreditsEnabledState = selector({
     const settings = get(settingsState);
 
     return settings.user_settings.hour_credits_enabled.value;
-  },
-});
-
-export const userTimeAwayState = selector({
-  key: 'userTimeAway',
-  get: ({ get }) => {
-    const settings = get(settingsState);
-
-    return settings.user_settings.user_time_away;
   },
 });

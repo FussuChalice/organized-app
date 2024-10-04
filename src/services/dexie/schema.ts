@@ -1,8 +1,22 @@
+import { BranchCongAnalysisType } from '@definition/branch_cong_analysis';
+import { BranchFieldServiceReportType } from '@definition/branch_field_service_reports';
+import { CongFieldServiceReportType } from '@definition/cong_field_service_reports';
+import { FieldServiceGroupType } from '@definition/field_service_groups';
+import { MeetingAttendanceType } from '@definition/meeting_attendance';
 import { PersonType } from '@definition/person';
 import { SchedWeekType } from '@definition/schedules';
-import { FullnameOption, SettingsType } from '@definition/settings';
+import {
+  FullnameOption,
+  SettingsType,
+  SourceFrequency,
+} from '@definition/settings';
 import { SourceWeekType } from '@definition/sources';
 import { SpeakersCongregationsType } from '@definition/speakers_congregations';
+import { UserBibleStudyType } from '@definition/user_bible_studies';
+import {
+  UserFieldServiceDailyReportType,
+  UserFieldServiceMonthlyReportType,
+} from '@definition/user_field_service_reports';
 import { VisitingSpeakerType } from '@definition/visiting_speakers';
 import { Week } from '@definition/week_type';
 
@@ -149,6 +163,7 @@ export const scheduleSchema: SchedWeekType = {
       reader: [{ type: 'main', value: '', name: '', updatedAt: '' }],
     },
     closing_prayer: [{ type: 'main', value: '', name: '', updatedAt: '' }],
+    circuit_overseer: { type: 'main', value: '', name: '', updatedAt: '' },
     week_type: [{ type: 'main', value: Week.NORMAL, updatedAt: '' }],
   },
   weekend_meeting: {
@@ -188,7 +203,6 @@ export const personSchema: PersonType = {
     email: { value: '', updatedAt: '' },
     address: { value: '', updatedAt: '' },
     phone: { value: '', updatedAt: '' },
-    first_month_report: { value: null, updatedAt: '' },
     publisher_baptized: {
       active: { value: false, updatedAt: '' },
       anointed: { value: false, updatedAt: '' },
@@ -205,12 +219,10 @@ export const personSchema: PersonType = {
       history: [
         {
           id: crypto.randomUUID(),
-          start_date: {
-            value: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          },
-          end_date: { value: null, updatedAt: new Date().toISOString() },
-          _deleted: { value: false, updatedAt: '' },
+          _deleted: false,
+          updatedAt: new Date().toISOString(),
+          start_date: new Date().toISOString(),
+          end_date: new Date().toISOString(),
         },
       ],
     },
@@ -229,38 +241,69 @@ export const settingSchema: SettingsType = {
     cong_name: '',
     cong_master_key: '',
     cong_access_code: '',
-    cong_location: { address: '', lat: 0, lng: 0 },
+    cong_location: { address: '', lat: 0, lng: 0, updatedAt: '' },
     cong_new: true,
-    cong_circuit: [{ type: 'main', value: '' }],
-    display_name_enabled: { value: false, updatedAt: '' },
-    fullname_option: { value: FullnameOption.FIRST_BEFORE_LAST, updatedAt: '' },
+    cong_circuit: [{ type: 'main', value: '', updatedAt: '' }],
+    display_name_enabled: {
+      meetings: { value: false, updatedAt: '' },
+      others: { value: false, updatedAt: '' },
+    },
+    schedule_exact_date_enabled: { value: false, updatedAt: '' },
+    fullname_option: [
+      { type: 'main', value: FullnameOption.FIRST_BEFORE_LAST, updatedAt: '' },
+    ],
+    short_date_format: [{ type: 'main', value: 'MM/dd/yyyy', updatedAt: '' }],
+    cong_discoverable: { value: false, updatedAt: '' },
+    time_away_public: { value: false, updatedAt: '' },
+    format_24h_enabled: [{ type: 'main', value: true, updatedAt: '' }],
+    week_start_sunday: [{ type: 'main', value: false, updatedAt: '' }],
+    attendance_online_record: { value: false, updatedAt: '' },
+    special_months: [],
+    source_material_auto_import: {
+      enabled: { value: true, updatedAt: '' },
+      frequency: { value: SourceFrequency.BIWEEKLY, updatedAt: '' },
+    },
     circuit_overseer: {
       firstname: { value: '', updatedAt: '' },
       lastname: { value: '', updatedAt: '' },
       display_name: { value: '', updatedAt: '' },
+      visits: [],
     },
-    cong_discoverable: { value: false, updatedAt: '' },
     midweek_meeting: [
       {
         type: 'main',
         class_count: { value: 1, updatedAt: '' },
-        opening_prayer_auto_assign: { value: false, updatedAt: '' },
-        time: '00:00',
-        schedule_exact_date_enabled: { value: false, updatedAt: '' },
-        weekday: 2,
+        opening_prayer_auto_assigned: { value: false, updatedAt: '' },
+        closing_prayer_auto_assigned: { value: false, updatedAt: '' },
+        time: { value: '00:00', updatedAt: '' },
+        weekday: { value: 2, updatedAt: '' },
+        aux_class_counselor_default: {
+          enabled: { value: false, updatedAt: '' },
+          person: { value: '', updatedAt: '' },
+        },
       },
     ],
     weekend_meeting: [
       {
         type: 'main',
         opening_prayer_auto_assigned: { value: false, updatedAt: '' },
-        time: '00:00',
+        time: { value: '00:00', updatedAt: '' },
         substitute_speaker_enabled: { value: false, updatedAt: '' },
-        weekday: 7,
+        weekday: { value: 7, updatedAt: '' },
         w_study_conductor_default: { value: '', updatedAt: '' },
+        substitute_w_study_conductor_displayed: { value: true, updatedAt: '' },
+        consecutive_monthly_parts_notice_shown: { value: true, updatedAt: '' },
+        outgoing_talks_schedule_public: { value: false, updatedAt: '' },
       },
     ],
     language_groups: [],
+    responsabilities: {
+      coordinator: '',
+      secretary: '',
+      service: '',
+      updatedAt: '',
+    },
+    data_sync: { value: false, updatedAt: '' },
   },
   user_settings: {
     cong_role: [],
@@ -276,7 +319,6 @@ export const settingSchema: SettingsType = {
     user_avatar: undefined,
     user_local_uid: '',
     user_members_delegate: [],
-    user_time_away: [],
     data_view: 'main',
   },
 };
@@ -330,5 +372,145 @@ export const speakersCongregationSchema: SpeakersCongregationsType = {
     },
     request_status: 'pending',
     request_id: '',
+  },
+};
+
+export const meetingAttendanceSchema: MeetingAttendanceType = {
+  month_date: '',
+  week_1: {
+    midweek: [
+      { type: 'main', online: undefined, present: undefined, updatedAt: '' },
+    ],
+    weekend: [
+      { type: 'main', online: undefined, present: undefined, updatedAt: '' },
+    ],
+  },
+  week_2: {
+    midweek: [
+      { type: 'main', online: undefined, present: undefined, updatedAt: '' },
+    ],
+    weekend: [
+      { type: 'main', online: undefined, present: undefined, updatedAt: '' },
+    ],
+  },
+  week_3: {
+    midweek: [
+      { type: 'main', online: undefined, present: undefined, updatedAt: '' },
+    ],
+    weekend: [
+      { type: 'main', online: undefined, present: undefined, updatedAt: '' },
+    ],
+  },
+  week_4: {
+    midweek: [
+      { type: 'main', online: undefined, present: undefined, updatedAt: '' },
+    ],
+    weekend: [
+      { type: 'main', online: undefined, present: undefined, updatedAt: '' },
+    ],
+  },
+  week_5: {
+    midweek: [
+      { type: 'main', online: undefined, present: undefined, updatedAt: '' },
+    ],
+    weekend: [
+      { type: 'main', online: undefined, present: undefined, updatedAt: '' },
+    ],
+  },
+};
+
+export const userBibleStudySchema: UserBibleStudyType = {
+  person_uid: '',
+  person_data: { _deleted: false, person_name: '', updatedAt: '' },
+};
+
+export const userFieldServiceDailyReportSchema: UserFieldServiceDailyReportType =
+  {
+    report_date: '',
+    report_data: {
+      _deleted: false,
+      hours: { field_service: '', credit: '' },
+      timer: { start: 0, state: 'not_started', value: 0 },
+      bible_studies: { value: 0, records: [] },
+      record_type: 'daily',
+      comments: '',
+      updatedAt: '',
+    },
+  };
+
+export const userFieldServiceMonthlyReportSchema: UserFieldServiceMonthlyReportType =
+  {
+    report_date: '',
+    report_data: {
+      _deleted: false,
+      updatedAt: '',
+      shared_ministry: false,
+      hours: {
+        field_service: 0,
+        credit: { value: 0, approved: 0 },
+      },
+      bible_studies: 0,
+      comments: '',
+      record_type: 'monthly',
+      status: 'pending',
+    },
+  };
+
+export const congFieldServiceReportSchema: CongFieldServiceReportType = {
+  report_id: '',
+  report_data: {
+    _deleted: false,
+    updatedAt: '',
+    report_date: '',
+    person_uid: '',
+    shared_ministry: false,
+    hours: {
+      field_service: 0,
+      credit: { value: 0, approved: 0 },
+    },
+    bible_studies: 0,
+    comments: '',
+    late: {
+      value: false,
+      submitted: '',
+    },
+    status: 'confirmed',
+  },
+};
+
+export const SchemaBranchFieldServiceReport: BranchFieldServiceReportType = {
+  report_date: '',
+  report_data: {
+    _deleted: false,
+    updatedAt: '',
+    submitted: false,
+    publishers_active: 0,
+    weekend_meeting_average: 0,
+    publishers: { report_count: 0, bible_studies: 0 },
+    APs: { report_count: 0, bible_studies: 0, hours: 0 },
+    FRs: { report_count: 0, bible_studies: 0, hours: 0 },
+  },
+};
+
+export const SchemaBranchCongAnalysis: BranchCongAnalysisType = {
+  report_date: '',
+  report_data: {
+    _deleted: false,
+    updatedAt: '',
+    submitted: false,
+    meeting_average: { midweek: 0, weekend: 0 },
+    publishers: { active: 0, inactive: 0, reactivated: 0 },
+    territories: { total: 0, uncovered: 0 },
+  },
+};
+
+export const SchemaFieldServiceGroup: FieldServiceGroupType = {
+  group_id: '',
+  group_data: {
+    _deleted: false,
+    updatedAt: '',
+    sort_index: 0,
+    name: '',
+    members: [],
   },
 };

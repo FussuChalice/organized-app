@@ -21,6 +21,8 @@ import {
   StyleDatePickerToolbar,
 } from './date_picker.styles';
 import { useAppTranslation } from '@hooks/index';
+import { useRecoilValue } from 'recoil';
+import { shortDateFormatState } from '@states/settings';
 
 /**
  * Component for a custom date picker.
@@ -36,7 +38,7 @@ import { useAppTranslation } from '@hooks/index';
  * @param {(value: Date) => void | Promise<void>} props.onChange - Function called when the selected date changes.
  * @returns {JSX.Element} CustomDatePicker component.
  */
-const CustomDatePicker = ({
+const DatePicker = ({
   value = null,
   onChange,
   view = 'input',
@@ -46,10 +48,13 @@ const CustomDatePicker = ({
   longDateFormat,
   maxDate = null,
   minDate = null,
+  readOnly = false,
 }: CustomDatePickerProps) => {
   const { t } = useAppTranslation();
 
-  const shortDateFormatLocale = shortDateFormat || t('tr_shortDateFormat');
+  const shortDateFormatDefault = useRecoilValue(shortDateFormatState);
+
+  const shortDateFormatLocale = shortDateFormat || shortDateFormatDefault;
   const longDateFormatLocale = longDateFormat || t('tr_longDateFormat');
 
   const [open, setOpen] = useState<boolean>(false);
@@ -87,6 +92,7 @@ const CustomDatePicker = ({
     if (view === 'button') {
       setValueTmp(value);
       setOpen(false);
+      onChange?.(value);
     }
   };
 
@@ -109,6 +115,7 @@ const CustomDatePicker = ({
       <Box sx={{ width: '100%' }}>
         <LocalizationProvider dateAdapter={AdapterDateFns}>
           <DesktopDatePicker
+            readOnly={readOnly}
             slots={{
               ...viewProps,
               actionBar:
@@ -126,7 +133,7 @@ const CustomDatePicker = ({
                           onClick={() => {
                             setOpen(false);
                             setValueTmp(null);
-                            onChange && onChange(null);
+                            onChange?.(null);
                           }}
                         >
                           {t('tr_clear')}
@@ -135,7 +142,7 @@ const CustomDatePicker = ({
                           variant="main"
                           onClick={() => {
                             setValueTmp(innerValue);
-                            onChange && onChange(innerValue);
+                            onChange?.(innerValue);
                             setOpen(false);
                           }}
                         >
@@ -158,13 +165,13 @@ const CustomDatePicker = ({
                           className="body-small-semibold"
                           color={'var(--grey-400)'}
                         >
-                          {t('tr_selectDate')}
+                          {t('tr_pickerSelectDate')}
                         </Typography>
                         <Typography className="h2">{`${handleFormatSelected(innerValue)}`}</Typography>
                       </Stack>
                     ),
             }}
-            open={open}
+            open={!readOnly && open}
             minDate={minDate}
             maxDate={maxDate}
             disablePast={disablePast}
@@ -172,13 +179,20 @@ const CustomDatePicker = ({
             showDaysOutsideCurrentMonth={true}
             onMonthChange={changeHeight}
             onChange={handleValueChange}
-            onOpen={() => setOpen(true)}
+            onOpen={() => {
+              if (readOnly) return;
+              setOpen(true);
+            }}
             value={valueTmp}
             slotProps={{
               textField: {
-                onClick: () => setOpen(true),
+                onClick: () => {
+                  if (readOnly) return;
+                  setOpen(true);
+                },
                 label: label,
                 value: valueTmp,
+                InputProps: { readOnly },
               },
               field: {
                 format: shortDateFormatLocale,
@@ -212,4 +226,4 @@ const CustomDatePicker = ({
   );
 };
 
-export default CustomDatePicker;
+export default DatePicker;

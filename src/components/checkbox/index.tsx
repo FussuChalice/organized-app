@@ -1,4 +1,4 @@
-import { Checkbox, FormControlLabel } from '@mui/material';
+import { Checkbox as MUICheckbox, FormControlLabel } from '@mui/material';
 import Typography from '@components/typography';
 import {
   IconCheckboxEmpty,
@@ -16,7 +16,7 @@ import {
  * @param {CheckboxPropsType} props - Props for the CustomCheckbox component.
  * @returns {JSX.Element} CustomCheckbox component.
  */
-const CustomCheckbox = (props: CheckboxPropsType) => {
+const Checkbox = (props: CheckboxPropsType) => {
   const checked = props.checked || false;
   const indeterminate = props.indeterminate || false;
   const disabled = props.disabled || false;
@@ -28,6 +28,7 @@ const CustomCheckbox = (props: CheckboxPropsType) => {
 
   return (
     <FormControlLabel
+      onClick={props.stopPropagation ? (e) => e.stopPropagation() : null}
       sx={{
         padding: '4px 0px',
         marginLeft: '-4px',
@@ -41,11 +42,14 @@ const CustomCheckbox = (props: CheckboxPropsType) => {
         ...sx,
       }}
       control={
-        <Checkbox
+        <MUICheckbox
+          readOnly={props.readOnly ?? false}
           checked={checked}
           indeterminate={indeterminate}
           disabled={disabled}
-          onChange={props.onChange ? props.onChange : null}
+          onChange={
+            props.readOnly ? null : (e, checked) => props.onChange?.(e, checked)
+          }
           sx={{
             padding: 0,
             '&.Mui-disabled': {
@@ -71,13 +75,23 @@ const CustomCheckbox = (props: CheckboxPropsType) => {
       }
       label={
         <>
-          <Typography className={className} color="var(--black)">
-            {label}
-          </Typography>
-          {labelDescription != '' ? (
+          {typeof label === 'string' && (
+            <Typography
+              sx={{ userSelect: 'none' }}
+              className={className}
+              color="var(--black)"
+            >
+              {label}
+            </Typography>
+          )}
+
+          {typeof label !== 'string' && label}
+
+          {labelDescription !== '' ? (
             <Typography
               className="body-small-regular"
               color={'var(--grey-400)'}
+              sx={{ userSelect: 'none' }}
             >
               {labelDescription}
             </Typography>
@@ -88,4 +102,4 @@ const CustomCheckbox = (props: CheckboxPropsType) => {
   );
 };
 
-export default CustomCheckbox;
+export default Checkbox;

@@ -14,6 +14,7 @@ const PublicTalkSelector = ({
   showSpeakerCount,
   type,
   schedule_id,
+  readOnly = false,
 }: PublicTalkSelectorType) => {
   const { t } = useAppTranslation();
 
@@ -30,7 +31,7 @@ const PublicTalkSelector = ({
 
   return (
     <Box sx={{ position: 'relative' }}>
-      {openCatalog && (
+      {!readOnly && openCatalog && (
         <SpeakersCatalog
           open={openCatalog}
           onClose={handleCloseCatalog}
@@ -41,6 +42,7 @@ const PublicTalkSelector = ({
       )}
 
       <Autocomplete
+        readOnly={readOnly}
         label={t('tr_publicTalk')}
         options={talks}
         isOptionEqualToValue={(option, value) =>
@@ -49,7 +51,7 @@ const PublicTalkSelector = ({
         getOptionLabel={(option: PublicTalkOptionType) =>
           `${option.talk_number}. ${option.talk_title}`
         }
-        value={selectedTalk}
+        value={talks.length > 0 ? selectedTalk : null}
         onChange={(_, value: PublicTalkOptionType) => handleTalkChange(value)}
         PopperComponent={(props) => <Popper {...props} placement="top-start" />}
         renderOption={(props, option) => (
@@ -136,10 +138,10 @@ const PublicTalkSelector = ({
           },
         }}
       />
-      {talkType !== 'jwStreamRecording' && (
+      {!readOnly && talkType !== 'jwStreamRecording' && (
         <IconButton
           onClick={handleOpenCatalog}
-          tooltip={t('tr_speakersCatalog')}
+          title={t('tr_speakersCatalog')}
           sx={{ position: 'absolute', right: 30, top: 2 }}
         >
           <IconTalk color="var(--accent-main)" />

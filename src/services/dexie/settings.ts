@@ -1,17 +1,9 @@
 import { UpdateSpec } from 'dexie';
-import { TimeAwayType } from '@definition/person';
 import { SettingsType } from '@definition/settings';
-import {
-  setCongAccountConnected,
-  setCongID,
-  setEncryptedMasterKey,
-  setIsMFAEnabled,
-  setUserID,
-} from '@services/recoil/app';
 import { settingSchema } from './schema';
-import { ValidateMeResponseType } from '@definition/api';
+import { AssignmentCode } from '@definition/assignment';
+import { getRandomArrayItem } from '@utils/common';
 import appDb from '@db/appDb';
-import worker from '@services/worker/backupWorker';
 
 export const dbAppSettingsSave = async (setting: SettingsType) => {
   const current = await appDb.app_settings.get(1);
@@ -24,48 +16,6 @@ export const dbAppSettingsUpdate = async (
   changes: UpdateSpec<SettingsType>
 ) => {
   await appDb.app_settings.update(1, changes);
-};
-
-export const dbAppSettingsTimeAwayAdd = async () => {
-  const setting = await appDb.app_settings.get(1);
-
-  setting.user_settings.user_time_away.push({
-    id: crypto.randomUUID(),
-    start_date: {
-      value: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-    end_date: { value: null, updatedAt: '' },
-    comments: { value: '', updatedAt: '' },
-    _deleted: { value: false, updatedAt: '' },
-  });
-
-  await appDb.app_settings.put(setting);
-};
-
-export const dbAppSettingsTimeAwayDelete = async (id) => {
-  const setting = await appDb.app_settings.get(1);
-
-  const currentTimeAway = setting.user_settings.user_time_away.find(
-    (record) => record.id === id
-  );
-  currentTimeAway._deleted = {
-    value: true,
-    updatedAt: new Date().toISOString(),
-  };
-
-  await appDb.app_settings.put(setting);
-};
-
-export const dbAppSettingsTimeAwayUpdate = async (timeAway: TimeAwayType) => {
-  const setting = await appDb.app_settings.get(1);
-
-  const currentIndex = setting.user_settings.user_time_away.findIndex(
-    (record) => record.id === timeAway.id
-  );
-  setting.user_settings.user_time_away[currentIndex] = { ...timeAway };
-
-  await appDb.app_settings.put(setting);
 };
 
 export const dbAppSettingsSaveProfilePic = async (
@@ -109,97 +59,122 @@ export const dbAppSettingsSaveProfilePic = async (
   await dbAppSettingsUpdate({ 'user_settings.user_avatar': undefined });
 };
 
-export const dbAppSettingsUpdateUserInfoAfterLogin = async (
-  data: ValidateMeResponseType
-) => {
-  const settings = await appDb.app_settings.get(1);
-
-  await dbAppSettingsUpdate({
-    'cong_settings.country_code': data.result.country_code,
-    'cong_settings.cong_name': data.result.cong_name,
-    'cong_settings.cong_number': data.result.cong_number,
-    'user_settings.cong_role': data.result.cong_role,
-    'user_settings.account_type': 'vip',
-    'cong_settings.cong_location': data.result.cong_location,
-    'cong_settings.cong_circuit': data.result.cong_circuit,
-  });
-
-  if (
-    settings.user_settings.firstname.updatedAt < data.result.firstname.updatedAt
-  ) {
-    await dbAppSettingsUpdate({
-      'user_settings.firstname': data.result.firstname,
-    });
-  }
-
-  if (
-    settings.user_settings.lastname.updatedAt < data.result.lastname.updatedAt
-  ) {
-    await dbAppSettingsUpdate({
-      'user_settings.lastname': data.result.lastname,
-    });
-  }
-
-  const midweekMeeting = structuredClone(
-    settings.cong_settings.midweek_meeting
-  );
-  for (const item of midweekMeeting) {
-    const remoteItem = data.result.midweek_meeting.find(
-      (record) => record.type === item.type
-    );
-    if (remoteItem) {
-      item.time = remoteItem.time;
-      item.weekday = remoteItem.weekday;
-    }
-  }
-  await dbAppSettingsUpdate({
-    'cong_settings.midweek_meeting': midweekMeeting,
-  });
-
-  const weekendMeeting = structuredClone(
-    settings.cong_settings.weekend_meeting
-  );
-  for (const item of weekendMeeting) {
-    const remoteItem = data.result.weekend_meeting.find(
-      (record) => record.type === item.type
-    );
-    if (remoteItem) {
-      item.time = remoteItem.time;
-      item.weekday = remoteItem.weekday;
-    }
-  }
-  await dbAppSettingsUpdate({
-    'cong_settings.weekend_meeting': weekendMeeting,
-  });
-
-  await setIsMFAEnabled(data.result.mfaEnabled);
-  await setCongID(data.result.cong_id);
-  await setCongAccountConnected(true);
-  await setUserID(data.result.id);
-  await setEncryptedMasterKey(data.result.cong_master_key);
-
-  worker.postMessage({ field: 'userRole', value: data.result.cong_role });
-  worker.postMessage({ field: 'userID', value: data.result.id });
-  worker.postMessage({ field: 'congID', value: data.result.cong_id });
-  worker.postMessage({ field: 'accountType', value: 'vip' });
-};
-
 export const dbAppSettingsBuildTest = async () => {
   const baseSettings = structuredClone(settingSchema);
-  baseSettings.user_settings.account_type = 'vip';
+  const persons = await appDb.persons.toArray();
+
+  const person = persons.find((record) =>
+    record.person_data.assignments.find(
+      (item) => item.code === AssignmentCode.WM_WTStudyConductor
+    )
+  );
+
+  const filteredPersons = persons.filter(
+    (record) => record.person_uid !== person.person_uid
+  );
+
+  const delegates: string[] = [];
+
+  do {
+    const delegate = getRandomArrayItem(filteredPersons).person_uid;
+
+    if (!delegates.includes(delegate)) {
+      delegates.push(delegate);
+    }
+  } while (delegates.length < 3);
+
+  baseSettings.user_settings.user_local_uid = person.person_uid;
+  baseSettings.user_settings.user_members_delegate = delegates;
+
   baseSettings.user_settings.firstname = {
-    value: 'Test',
+    value: person.person_data.person_firstname.value,
     updatedAt: new Date().toISOString(),
   };
   baseSettings.user_settings.lastname = {
-    value: 'User',
+    value: person.person_data.person_lastname.value,
+    updatedAt: new Date().toISOString(),
+  };
+  baseSettings.user_settings.cong_role = [
+    'admin',
+    'elder',
+    'publisher',
+    'secretary',
+  ];
+  baseSettings.user_settings.account_type = 'vip';
+  baseSettings.user_settings.hour_credits_enabled = {
+    value: true,
     updatedAt: new Date().toISOString(),
   };
   baseSettings.cong_settings.country_code = 'USA';
-  baseSettings.cong_settings.cong_name = 'Congregation Test';
-  baseSettings.cong_settings.cong_number = '123456';
-  baseSettings.cong_settings.cong_circuit = [{ type: 'main', value: '01 - A' }];
-  baseSettings.user_settings.cong_role = ['admin'];
+  baseSettings.cong_settings.cong_name = 'Central English - Seattle WA';
+  baseSettings.cong_settings.cong_number = '11163';
+  baseSettings.cong_settings.cong_circuit = [
+    { type: 'main', value: 'WA- 5', updatedAt: new Date().toISOString() },
+  ];
+  baseSettings.cong_settings.cong_location = {
+    address: '333 19th Ave E Seattle WA  98112-5307',
+    lat: 47.621731,
+    lng: -122.307599,
+    updatedAt: new Date().toISOString(),
+  };
+  baseSettings.cong_settings.schedule_exact_date_enabled = {
+    value: true,
+    updatedAt: new Date().toISOString(),
+  };
+  baseSettings.cong_settings.midweek_meeting = [
+    {
+      type: 'main',
+      class_count: { updatedAt: new Date().toISOString(), value: 1 },
+      opening_prayer_auto_assigned: {
+        value: false,
+        updatedAt: new Date().toISOString(),
+      },
+      closing_prayer_auto_assigned: {
+        value: false,
+        updatedAt: new Date().toISOString(),
+      },
+      time: { value: '19:30', updatedAt: new Date().toISOString() },
+      weekday: { value: 4, updatedAt: new Date().toISOString() },
+      aux_class_counselor_default: {
+        enabled: { value: false, updatedAt: '' },
+        person: { value: '', updatedAt: '' },
+      },
+    },
+  ];
+  baseSettings.cong_settings.weekend_meeting = [
+    {
+      type: 'main',
+      opening_prayer_auto_assigned: {
+        value: false,
+        updatedAt: new Date().toISOString(),
+      },
+      substitute_speaker_enabled: {
+        value: false,
+        updatedAt: new Date().toISOString(),
+      },
+      w_study_conductor_default: { value: '', updatedAt: '' },
+      time: { value: '13:00', updatedAt: new Date().toISOString() },
+      weekday: { value: 7, updatedAt: new Date().toISOString() },
+      consecutive_monthly_parts_notice_shown: {
+        value: true,
+        updatedAt: new Date().toISOString(),
+      },
+      substitute_w_study_conductor_displayed: {
+        value: true,
+        updatedAt: new Date().toISOString(),
+      },
+      outgoing_talks_schedule_public: {
+        value: false,
+        updatedAt: new Date().toISOString(),
+      },
+    },
+  ];
+  baseSettings.cong_settings.circuit_overseer = {
+    firstname: { value: 'Alexander', updatedAt: new Date().toISOString() },
+    lastname: { value: 'Olivier', updatedAt: new Date().toISOString() },
+    display_name: { value: 'A. Olivier', updatedAt: new Date().toISOString() },
+    visits: [],
+  };
 
   await appDb.app_settings.put(baseSettings, 1);
 };

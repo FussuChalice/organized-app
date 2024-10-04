@@ -3,7 +3,7 @@ import {
   getShortDatePickerFormat,
   getTranslation,
 } from '@services/i18n/translation';
-import { convertStringToBoolean, localStorageGetItem } from '@utils/common';
+import { localStorageGetItem } from '@utils/common';
 import { SnackBarSeverityType } from '@definition/app';
 import { ReactElement } from 'react';
 import { LANGUAGE_LIST } from '@constants/index';
@@ -78,12 +78,48 @@ export const monthNamesState = selector({
   },
 });
 
-export const shortDateFormatState = selector({
-  key: 'shortDateFormat',
+export const monthShortNamesState = selector({
+  key: 'monthShortNames',
   get: ({ get }) => {
     const appLang = get(appLangState);
 
-    return getTranslation({ key: 'shortDateFormat', language: appLang });
+    const months: string[] = [];
+
+    months.push(getTranslation({ key: 'tr_januaryShort', language: appLang }));
+    months.push(getTranslation({ key: 'tr_februaryShort', language: appLang }));
+    months.push(getTranslation({ key: 'tr_marchShort', language: appLang }));
+    months.push(getTranslation({ key: 'tr_aprilShort', language: appLang }));
+    months.push(getTranslation({ key: 'tr_mayShort', language: appLang }));
+    months.push(getTranslation({ key: 'tr_juneShort', language: appLang }));
+    months.push(getTranslation({ key: 'tr_julyShort', language: appLang }));
+    months.push(getTranslation({ key: 'tr_augustShort', language: appLang }));
+    months.push(
+      getTranslation({ key: 'tr_septemberShort', language: appLang })
+    );
+    months.push(getTranslation({ key: 'tr_octoberShort', language: appLang }));
+    months.push(getTranslation({ key: 'tr_novemberShort', language: appLang }));
+    months.push(getTranslation({ key: 'tr_decemberShort', language: appLang }));
+
+    return months;
+  },
+});
+
+export const dayNamesState = selector({
+  key: 'dayNames',
+  get: ({ get }) => {
+    const appLang = get(appLangState);
+
+    const days: string[] = [];
+
+    days.push(getTranslation({ key: 'tr_sunday', language: appLang }));
+    days.push(getTranslation({ key: 'tr_monday', language: appLang }));
+    days.push(getTranslation({ key: 'tr_tuesday', language: appLang }));
+    days.push(getTranslation({ key: 'tr_wednesday', language: appLang }));
+    days.push(getTranslation({ key: 'tr_thursday', language: appLang }));
+    days.push(getTranslation({ key: 'tr_friday', language: appLang }));
+    days.push(getTranslation({ key: 'tr_saturday', language: appLang }));
+
+    return days;
   },
 });
 
@@ -115,13 +151,6 @@ export const isEmailBlockedState = atom({
 export const isCongAccountCreateState = atom({
   key: 'isCongAccountCreate',
   default: false,
-});
-
-export const isShowTermsUseState = atom({
-  key: 'isShowLAG',
-  default:
-    typeof window !== 'undefined' &&
-    convertStringToBoolean(localStorage.getItem('termsUse') || 'true'),
 });
 
 export const qrCodePathState = atom({
@@ -252,11 +281,6 @@ export const isAccountChooseState = atom({
 export const isFetchingScheduleState = atom({
   key: 'isFetchingSchedule',
   default: true,
-});
-
-export const currentMFAStageState = atom({
-  key: 'currentMFAStage',
-  default: 'setup',
 });
 
 export const refreshScreenState = atom({
@@ -428,11 +452,6 @@ export const currentDrawerState = atom({
   default: '',
 });
 
-export const isWIPSnackOpenState = atom({
-  key: 'isWIPSnackOpen',
-  default: false,
-});
-
 export const isAppNotificationOpenState = atom({
   key: 'isAppNotificationOpen',
   default: false,
@@ -445,5 +464,15 @@ export const speakersKeyState = atom({
 
 export const encryptedMasterKeyState = atom({
   key: 'encryptedMasterKey',
+  default: '',
+});
+
+export const cookiesConsentState = atom({
+  key: 'cookiesConsent',
+  default: Boolean(localStorageGetItem('userConsent')),
+});
+
+export const tokenDevState = atom({
+  key: 'tokenDev',
   default: '',
 });

@@ -1,4 +1,4 @@
-import { ChangeEvent } from 'react';
+import { ChangeEvent, ReactNode } from 'react';
 import { CustomClassName } from '@definition/app';
 import { SxProps } from '@mui/material';
 
@@ -31,7 +31,7 @@ export type CheckboxPropsType = {
   /**
    * Label for the checkbox.
    */
-  label?: string;
+  label?: string | ReactNode;
 
   /**
    * Additional description for the label.
@@ -52,4 +52,8 @@ export type CheckboxPropsType = {
    * Custom styling for the checkbox.
    */
   sx?: SxProps;
+
+  readOnly?: boolean;
+
+  stopPropagation?: boolean;
 };

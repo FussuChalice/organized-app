@@ -10,6 +10,7 @@ import {
 } from '@services/app/persons';
 import { buildPersonFullname, localStorageGetItem } from '@utils/common';
 import { fullnameOptionState } from './settings';
+import { APRecordType } from '@definition/ministry';
 
 export const personsState = atom<PersonType[]>({
   key: 'persons',
@@ -89,7 +90,6 @@ export const personCurrentDetailsState = atom<PersonType>({
       email: { value: '', updatedAt: '' },
       address: { value: '', updatedAt: '' },
       phone: { value: '', updatedAt: '' },
-      first_month_report: { value: null, updatedAt: '' },
       publisher_baptized: {
         active: { value: false, updatedAt: '' },
         anointed: { value: false, updatedAt: '' },
@@ -106,12 +106,10 @@ export const personCurrentDetailsState = atom<PersonType>({
         history: [
           {
             id: crypto.randomUUID(),
-            start_date: {
-              value: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            },
-            end_date: { value: null, updatedAt: new Date().toISOString() },
-            _deleted: { value: false, updatedAt: '' },
+            _deleted: false,
+            updatedAt: '',
+            start_date: new Date().toISOString(),
+            end_date: null,
           },
         ],
       },
@@ -164,4 +162,40 @@ export const personsRecentState = atom<string[]>({
 export const personsTabState = atom({
   key: 'personsTab',
   default: PersonsTab.ALL,
+});
+
+export const applicationsState = atom<APRecordType[]>({
+  key: 'applications',
+  default: [],
+});
+
+export const applicationsNewState = selector({
+  key: 'applicationsNew',
+  get: ({ get }) => {
+    const applications = get(applicationsState);
+
+    return applications
+      .filter((record) => !record.status || record.status === 'waiting')
+      .sort((a, b) => b.submitted.localeCompare(a.submitted));
+  },
+});
+
+export const applicationsCountState = selector({
+  key: 'applicationsCount',
+  get: ({ get }) => {
+    const applications = get(applicationsNewState);
+
+    return applications.length.toString();
+  },
+});
+
+export const applicationsApprovedState = selector({
+  key: 'applicationsApproved',
+  get: ({ get }) => {
+    const applications = get(applicationsState);
+
+    return applications
+      .filter((record) => record.status === 'approved')
+      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  },
 });

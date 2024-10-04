@@ -29,10 +29,10 @@ import {
 import { useAppTranslation } from '@hooks/index';
 import { isDemo } from '@constants/index';
 import { NavBarType } from './index.types';
+import useNavbar from './useNavbar';
 import AccountHeaderIcon from '@components/account_header_icon';
 import Button from '@components/button';
 import Typography from '@components/typography';
-import useNavbar from './useNavbar';
 
 const baseMenuStyle = {
   padding: '8px 12px 8px 16px',
@@ -135,7 +135,15 @@ const NavBar = ({ isSupported }: NavBarType) => {
             <ThemeSwitcher />
 
             {tabletUp && (isAppLoad || isDemo) && (
-              <LanguageSwitcher menuStyle={baseMenuStyle} />
+              <LanguageSwitcher
+                menuStyle={{
+                  ...baseMenuStyle,
+                  '&:hover': {
+                    backgroundColor: 'var(--accent-200)',
+                    borderRadius: 'var(--radius-l)',
+                  },
+                }}
+              />
             )}
 
             {isSupported && (
@@ -143,13 +151,14 @@ const NavBar = ({ isSupported }: NavBarType) => {
                 <IconButton
                   color="inherit"
                   edge="start"
+                  disableRipple
                   sx={{
-                    padding: '0px 8px',
+                    padding: '2px 8px',
                     marginLeft: '0px',
                     borderRadius: '8px',
-                    '.MuiTouchRipple-ripple .MuiTouchRipple-child': {
-                      borderRadius: 0,
-                      backgroundColor: 'rgba(23, 32, 42, .3)',
+                    '&:hover': {
+                      backgroundColor: 'var(--accent-200)',
+                      borderRadius: 'var(--radius-l)',
                     },
                   }}
                   onClick={handleOpenMoreMenu}

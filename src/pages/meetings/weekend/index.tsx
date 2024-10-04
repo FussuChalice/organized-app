@@ -4,10 +4,12 @@ import { ScheduleAutofillDialog, WeekSelector } from '@features/index';
 import { useAppTranslation, useBreakpoints } from '@hooks/index';
 import useWeekend from './useWeekend';
 import Button from '@components/button';
+import OutgoingTalks from '@features/meetings/outgoing_talks';
 import PageTitle from '@components/page_title';
+import QuickSettingsWeekendMeeting from '@features/meetings/weekend_editor/quick_settings';
+import SchedulePublish from '@features/meetings/schedule_publish';
 import WeekendEditor from '@features/meetings/weekend_editor';
 import WeekendExport from '@features/meetings/weekend_export';
-import OutgoingTalks from '@features/meetings/outgoing_talks';
 
 const WeekendMeeting = () => {
   const { t } = useAppTranslation();
@@ -22,6 +24,13 @@ const WeekendMeeting = () => {
     openExport,
     handleCloseExport,
     handleOpenExport,
+    handleClosePublish,
+    handleOpenPublish,
+    isConnected,
+    openPublish,
+    handleCloseQuickSettings,
+    handleOpenQuickSettings,
+    quickSettingsOpen,
   } = useWeekend();
 
   return (
@@ -32,6 +41,13 @@ const WeekendMeeting = () => {
         flexDirection: 'column',
       }}
     >
+      {quickSettingsOpen && (
+        <QuickSettingsWeekendMeeting
+          open={quickSettingsOpen}
+          onClose={handleCloseQuickSettings}
+        />
+      )}
+
       {openExport && (
         <WeekendExport open={openExport} onClose={handleCloseExport} />
       )}
@@ -44,8 +60,17 @@ const WeekendMeeting = () => {
         />
       )}
 
+      {isConnected && openPublish && (
+        <SchedulePublish
+          type="weekend"
+          open={openPublish}
+          onClose={handleClosePublish}
+        />
+      )}
+
       <PageTitle
         title={t('tr_weekendMeeting')}
+        quickAction={handleOpenQuickSettings}
         buttons={
           hasWeeks && (
             <>
@@ -63,9 +88,15 @@ const WeekendMeeting = () => {
               >
                 {t('tr_autofill')}
               </Button>
-              <Button variant="main" startIcon={<IconPublish />}>
-                {t('tr_publish')}
-              </Button>
+              {isConnected && (
+                <Button
+                  variant="main"
+                  startIcon={<IconPublish />}
+                  onClick={handleOpenPublish}
+                >
+                  {t('tr_publish')}
+                </Button>
+              )}
             </>
           )
         }
