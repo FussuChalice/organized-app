@@ -7,6 +7,7 @@ const LottieLoader = () => {
       loop
       animationData={animationData}
       play
+      speed={1.3}
       style={{ width: 72, height: 72 }}
     />
   );
