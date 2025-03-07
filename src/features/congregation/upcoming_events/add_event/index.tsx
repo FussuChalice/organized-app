@@ -1,5 +1,5 @@
 import { useAppTranslation } from '@hooks/index';
-import { HorizontalFlex, StyledCardBox, VerticalFlex } from './index.styles';
+import { HorizontalFlex, StyledCardBox, VerticalFlex } from '../index.styles';
 import {
   Button,
   DatePicker,
@@ -8,11 +8,13 @@ import {
   TextField,
   TimePicker,
 } from '@components/index';
-import { EventType, eventValue } from './index.types';
-import EventIcon from './EventIcon';
+import { EventType, eventValue } from '../index.types';
+import EventIcon from '../EventIcon';
 import { useState } from 'react';
 import { IconAdd, IconCheck, IconClose, IconDelete } from '@components/icons';
 import { Box } from '@mui/material';
+import { AddEventProps } from './index.types';
+import useAddEvents from './useAddEvent';
 
 const options: eventValue[] = [
   'tr_circuitOverseerWeek',
@@ -36,58 +38,10 @@ const options: eventValue[] = [
 
 // Should look the same as EventType
 // But this contain the date, and title is named "custom"
-export interface EventValues {
-  date?: Date | null;
-  time?: Date | null;
-  type?: eventValue;
-  custom?: string;
-  description?: string;
-}
 
-const AddEvent = ({
-  data = [{}],
-  titleTextKey = 'tr_addUpcomingEvent',
-  onDone,
-  onCancel,
-}: {
-  data?: EventValues[];
-  titleTextKey?: string;
-  onDone?: (data: EventType[]) => void;
-  onCancel?: () => void;
-}) => {
-  const [values, setValues] = useState<EventValues[]>(data);
-
+const AddEvent = (props: AddEventProps) => {
   const { t } = useAppTranslation();
-
-  const handleDone = () => {
-    onDone?.(
-      values.map((v) => ({
-        type: v.type,
-        description: v.description,
-        time: v.time ? v.time.toLocaleTimeString() : '',
-        title: v.type === 'tr_custom' ? v.custom : undefined,
-      }))
-    );
-  };
-
-  const handleCancel = () => onCancel && onCancel();
-
-  const updateValues = (index: number, newData: EventValues) => {
-    const newValues = [...values];
-    newValues[index] = newData;
-    setValues(newValues);
-  };
-
-  const addValues = () => setValues([...values, {}]);
-
-  const removeValues = (index: number) => {
-    const newValues = [...values];
-    newValues.splice(index, 1);
-    setValues(newValues);
-    if (newValues.length === 0) {
-      handleDone();
-    }
-  };
+  const {...} = useAddEvents(props);
 
   return (
     <StyledCardBox>

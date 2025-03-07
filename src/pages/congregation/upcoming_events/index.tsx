@@ -10,6 +10,7 @@ import AddEvent from '@features/congregation/upcoming_events/AddEvent';
 import Button from '@components/button';
 import EventList from '@features/congregation/upcoming_events/EventList';
 import PageTitle from '@components/page_title';
+import useUpcomingEvents from './useUpcomingEvents';
 
 const data: EventListType = [
   {
@@ -84,11 +85,11 @@ const data: EventListType = [
 ];
 
 const UpcomingEvents = () => {
+  const { isAdmin } = useUpcomingEvents();
+
   const [isAddingEvent, setIsAddingEvent] = useState(false);
 
   const { t } = useAppTranslation();
-
-  const isAdmin = true;
 
   const handleCancelEvent = () => setIsAddingEvent(false);
   const handleAddEvent = (data: EventType[]) => setIsAddingEvent(data && false);
