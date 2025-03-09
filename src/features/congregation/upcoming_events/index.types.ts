@@ -35,4 +35,14 @@ export interface YearlyEventsType {
   dates: EventDateType[];
 }
 
+// Should look the same as EventType
+// But this contain the date, and title is named "custom"
+export interface EventValues {
+  date?: Date | null;
+  time?: Date | null;
+  type?: eventValue;
+  custom?: string;
+  description?: string;
+}
+
 export type EventListType = YearlyEventsType[];

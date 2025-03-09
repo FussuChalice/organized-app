@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { AddEventProps, EventValues } from './index.types';
+import { AddEventProps } from './index.types';
+import { EventValues } from '../index.types';
 
 const useAddEvents = (props: AddEventProps) => {
   const [values, setValues] = useState<EventValues[]>(props.data);
@@ -40,6 +41,7 @@ const useAddEvents = (props: AddEventProps) => {
     updateValues,
     addValues,
     removeValues,
+    values,
   };
 };
 

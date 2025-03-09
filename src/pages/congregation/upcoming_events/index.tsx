@@ -6,11 +6,11 @@ import {
   EventListType,
   EventType,
 } from '@features/congregation/upcoming_events/index.types';
-import AddEvent from '@features/congregation/upcoming_events/AddEvent';
 import Button from '@components/button';
 import EventList from '@features/congregation/upcoming_events/EventList';
 import PageTitle from '@components/page_title';
 import useUpcomingEvents from './useUpcomingEvents';
+import AddEvent from '@features/congregation/upcoming_events/add_event';
 
 const data: EventListType = [
   {

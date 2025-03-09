@@ -1,20 +1,16 @@
-import { useAppTranslation } from '@hooks/index';
-import { HorizontalFlex, StyledCardBox, VerticalFlex } from '../index.styles';
-import {
-  Button,
-  DatePicker,
-  MenuItem,
-  Select,
-  TextField,
-  TimePicker,
-} from '@components/index';
-import { EventType, eventValue } from '../index.types';
-import EventIcon from '../EventIcon';
-import { useState } from 'react';
-import { IconAdd, IconCheck, IconClose, IconDelete } from '@components/icons';
-import { Box } from '@mui/material';
+import useAppTranslation from '@hooks/useAppTranslation';
+import { eventValue, EventValues } from '../index.types';
 import { AddEventProps } from './index.types';
 import useAddEvents from './useAddEvent';
+import { HorizontalFlex, StyledCardBox, VerticalFlex } from '../index.styles';
+import Button from '@components/button';
+import { IconAdd, IconCheck, IconClose, IconDelete } from '@components/icons';
+import DatePicker from '@components/date_picker';
+import TimePicker from '@components/time_picker';
+import Select from '@components/select';
+import MenuItem from '@components/menuitem';
+import EventIcon from '../EventIcon';
+import TextField from '@components/textfield';
 
 const options: eventValue[] = [
   'tr_circuitOverseerWeek',
@@ -36,12 +32,22 @@ const options: eventValue[] = [
   'tr_custom',
 ];
 
-// Should look the same as EventType
-// But this contain the date, and title is named "custom"
-
-const AddEvent = (props: AddEventProps) => {
+const AddEvent = ({
+  data = [{}],
+  titleTextKey = 'tr_addUpcomingEvent',
+  onDone,
+  onCancel,
+}: AddEventProps) => {
   const { t } = useAppTranslation();
-  const {...} = useAddEvents(props);
+
+  const {
+    updateValues,
+    removeValues,
+    handleCancel,
+    handleDone,
+    addValues,
+    values,
+  } = useAddEvents({ data, titleTextKey, onDone, onCancel });
 
   return (
     <StyledCardBox>
@@ -178,16 +184,10 @@ const EventFields = ({
           <IconDelete sx={{ marginRight: '8px' }} />
           {t('tr_remove')}
         </Button>
-        <Box id="add-btn">
-          <Button
-            sx={{ minHeight: 'auto' }}
-            variant="small"
-            onClick={addValues}
-          >
-            <IconAdd sx={{ marginRight: '8px' }} />
-            {t('tr_add')}
-          </Button>
-        </Box>
+        <Button sx={{ minHeight: 'auto' }} variant="small" onClick={addValues}>
+          <IconAdd sx={{ marginRight: '8px' }} />
+          {t('tr_add')}
+        </Button>
       </HorizontalFlex>
     </VerticalFlex>
   );
